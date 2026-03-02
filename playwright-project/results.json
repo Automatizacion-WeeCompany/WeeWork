@@ -1,0 +1,231 @@
+{
+  "config": {
+    "configFile": "C:\\Git\\qa-tool\\playwright-project\\playwright.runner.config.ts",
+    "rootDir": "C:/Git/qa-tool/playwright-project/src/tests",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Git/qa-tool/playwright-project/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Chromium",
+        "name": "Chromium",
+        "testDir": "C:/Git/qa-tool/playwright-project/src/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 150000
+      },
+      {
+        "outputDir": "C:/Git/qa-tool/playwright-project/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Firefox",
+        "name": "Firefox",
+        "testDir": "C:/Git/qa-tool/playwright-project/src/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 150000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 9,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "CotizacionesFlexSalud.spec.ts",
+      "file": "CotizacionesFlexSalud.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Cotizaciones Individuales",
+          "file": "CotizacionesFlexSalud.spec.ts",
+          "line": 25,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Validacion - Cotizacion Individual genericos Anual  Cobertura $10,000.00 MXN",
+              "ok": true,
+              "tags": [
+                "ESC_001"
+              ],
+              "tests": [
+                {
+                  "timeout": 150000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Chromium",
+                  "projectName": "Chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 78031,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ Año seleccionado: 2007\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectMesNacFlexTitular: Mayo\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectDiaNacFlexTitular: 28\n"
+                        },
+                        {
+                          "text": "se Selecciono un producto de menores\n"
+                        },
+                        {
+                          "text": "El valor de factura es No\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectEntidadNacFlex: Coahuila de Zaragoza\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectEntidadNacFlex: Colima\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectAno1: 1999\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para .selectMesNacFlex: Agosto\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectDia1: 7\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectEdo1: Nayarit\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectParentesco1: Otro\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectColonia1: Tepeolulco\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectColonia0: Tepeolulco\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectEcivilContratante: Soltero(a)\n"
+                        },
+                        {
+                          "text": "✅ Año seleccionado: 2007\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectMesContratante: Enero\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectDiasContratante: 24\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #entidadNacPagoFlexSalud: Nuevo León\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #selectColoniaContratante: El Pozo\n"
+                        },
+                        {
+                          "text": "✅ Opción seleccionada para #generoPagaFlexSalud: Hombre\n"
+                        },
+                        {
+                          "text": "Cotizacion Individual\n"
+                        },
+                        {
+                          "text": "Individual\n"
+                        },
+                        {
+                          "text": "Se encontraron 2 productos\n"
+                        },
+                        {
+                          "text": "Poliza emitida de manera correcta\n"
+                        },
+                        {
+                          "text": "🧾 Escribiendo productos: [ \u001b[32m'MENORES FLEXSALUD'\u001b[39m, \u001b[32m'ONCOLOGÍA TOTAL'\u001b[39m ]\n"
+                        },
+                        {
+                          "text": "🧾 Escribiendo polizas: [ \u001b[32m'1800207000000449004000'\u001b[39m, \u001b[32m'1800210000001133005000'\u001b[39m ]\n"
+                        },
+                        {
+                          "text": "🧾 Escribiendo folios: [ \u001b[32m'1RD7185VXC022ROA26OL'\u001b[39m ]\n"
+                        },
+                        {
+                          "text": "📄 Excel del worker 0 actualizado correctamente: C:\\Git\\qa-tool\\playwright-project\\src\\Evidencias\\ReportePolizas_worker0.xlsx\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-18T23:37:06.616Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Git\\qa-tool\\playwright-project\\test-results\\CotizacionesFlexSalud-Coti-090eb-ual-Cobertura-10-000-00-MXN-Chromium\\video.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ce88cbded223337f38ef-1187d8f91115d6f54428",
+              "file": "CotizacionesFlexSalud.spec.ts",
+              "line": 28,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-02-18T23:37:04.626Z",
+    "duration": 80760.666,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
