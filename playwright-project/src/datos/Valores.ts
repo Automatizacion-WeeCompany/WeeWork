@@ -1,0 +1,26 @@
+// export const selectores = {} se usa para que todo lo que este entre llaves sea llamado por el archivo.spec.ts
+export const accesos = {
+    var_headless: true,
+    //var_headless: false,
+    urlFlexQA: "https://weeqp.azurewebsites.net/gs/flexsalud/",
+    urlFlexQAHomo: "https://demo.weefusion.net/QP/FlexSaludHomo/",
+    anio: "1987",
+    numero_tarjeta: "5555555555554444",
+    numero_tarjeta_3D: "4111111111111111",
+    mm_tarjeta: "12",
+    aa_tarjeta: "30",
+    cvv_tarjeta: "123",
+    porcentaje_fami_1: 50,
+    porcentaje_fami_2: 50,
+    porcentaje_titular: 100,
+    porcentaje_full_1_ben: "100",
+    porcentaje_ben_1: "20",
+    porcentaje_ben_2: "20",
+    porcentaje_ben_3: "20",
+    porcentaje_ben_4: "20",
+    porcentaje_ben_5: "20",
+    cp_beneficiario: 56615,
+    cp_asegurado: 56615,
+    codigo_3d: 1234567890,
+    cp_pagador: 56615
+}

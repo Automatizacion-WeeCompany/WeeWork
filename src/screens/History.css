@@ -1,0 +1,317 @@
+.history-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 40px); /* Ocupa todo el alto disponible */
+  padding: 20px;
+  box-sizing: border-box;
+  color: #e0e0e0;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-shrink: 0; /* Evita que el header se encoja */
+}
+
+.back-button {
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.empty-state {
+  text-align: center;
+  color: #666;
+  margin-top: 40px;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px; /* Evita que las columnas se encimen en pantallas mini */
+}
+
+.table-header th {
+  position: sticky;
+  top: 0;
+  background: #2d2d2d;
+  padding: 15px;
+  z-index: 10;
+  border-bottom: 2px solid #444;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+}
+
+.text-left {
+  text-align: left;
+  color: #fff;
+}
+
+.text-center {
+  text-align: center;
+  color: #fff;
+}
+
+.text-right {
+  text-align: right;
+  color: #fff;
+}
+
+.text-pass {
+  color: #1a1a1a;
+}
+.table-row {
+  border-bottom: 1px solid #333;
+  transition: background 0.2s;
+}
+.table-row:hover {
+  background: #252525;
+}
+
+.table-cell {
+  padding: 12px 15px;
+  font-size: 0.9rem;
+}
+
+.cell-date { width: 180px; color: #aaa; }
+
+.cell-project { min-width: 250px; }
+
+.cell-passed {
+  color: green;
+  font-weight: bold;
+}
+
+.cell-failed {
+  color: red;
+  font-weight: bold;
+}
+
+.cell-failed-none {
+  color: #f8ecec;
+  font-weight: normal;
+}
+
+.cell-duration { font-family: monospace; color: #818cf8; }
+
+/* Subtexto de nombres de tests debajo del proyecto */
+.test-names-subtext {
+  font-size: 0.75rem;
+  color: #d8d5d5;
+  margin-top: 4px;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Para que no rompa la tabla si hay muchos nombres */
+}
+
+/* Contenedor de la barra (el fondo gris/rojo) */
+.progress-container {
+  width: 100%;
+  background-color: #3d1a1a; /* Fondo rojo oscuro para fallos */
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+
+/* La parte llena de la barra (verde) */
+.progress-bar {
+  background-color: #4caf50; /* Verde éxito */
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* Etiqueta del porcentaje */
+.percentage-label {
+  font-size: 0.7rem;
+  text-align: center;
+  margin-top: 2px;
+  color: #aaa;
+}
+
+/* --- BARRA DE FILTROS --- */
+.filters-bar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  background: #252525;
+  padding: 15px;
+  border-radius: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+/* Inputs generales */
+.filter-input {
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  outline: none;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.filter-input:focus {
+  border-color: #646cff;
+}
+
+.search-input {
+  min-width: 250px;
+}
+
+.date-input {
+  color-scheme: dark; /* Hace que el calendario nativo sea oscuro */
+}
+
+/* Botón de limpiar */
+.clear-filters-btn {
+  background-color: transparent;
+  border: 1px solid #f44336;
+  color: #f44336;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-left: auto; /* Empuja el botón a la derecha */
+}
+
+.clear-filters-btn:hover {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+/* Ajuste para contenedor de tabla con scroll */
+.table-container {
+  flex-grow: 1; /* Hace que la tabla ocupe el espacio restante */
+  overflow: auto; /* Scroll si la tabla es muy grande */
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #333;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.evidence-btn {
+  background: #006ab3;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.evidence-btn:hover {
+  background: #0f1b5f;
+  transform: translateY(-1px);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.delete-selected-btn {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  animation: fadeIn 0.3s ease;
+}
+
+.delete-selected-btn:hover {
+  background-color: #b91c1c;
+  transform: scale(1.02);
+}
+
+.row-selected {
+  background-color: rgba(239, 68, 68, 0.1) !important; /* Un rojo muy suave */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.actions-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.export-excel-btn {
+    background-color: #006ab3; /* Verde Excel */
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.export-excel-btn:hover {
+    background-color: #0f1b5f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+}
+
+.export-excel-btn:active {
+    transform: translateY(0);
+}
+
+.toast-notification {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    z-index: 9999;
+    animation: slideInRight 0.3s ease-out, fadeOut 0.5s ease-in 2.5s;
+}
+
+.toast-notification.success {
+    background: #006ab3; /* Verde esmeralda */
+    border-left: 5px solid #0f1b5f;
+}
+
+.toast-notification.error {
+    background: #006ab3;
+    border-left: 5px solid #0f1b5f;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}

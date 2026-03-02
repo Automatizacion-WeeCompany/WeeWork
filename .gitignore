@@ -1,0 +1,39 @@
+# --- Node / Web (Frontend) ---
+node_modules
+dist
+dist-ssr
+*.local
+.npm
+.yarn
+
+# --- Rust / Tauri (Backend) ---
+/src-tauri/target
+/target
+Cargo.lock   # Opcional: Algunos prefieren subirlo, otros no. Para apps finales se suele subir.
+
+# --- Logs y Bases de Datos Locales ---
+logs
+*.log
+*.db
+*.db-shm
+*.db-wal
+history_reports # Tu carpeta de evidencias
+test-results    # Resultados de Playwright
+playwright-report
+
+# --- Playwright ---
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# --- IDEs y Sistema ---
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store    # Basura de Mac
+Thumbs.db    # Basura de Windows
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
