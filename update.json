@@ -1,10 +1,10 @@
 {
-  "version": "1.1.1",
+  "version": "1.1.2",
   "notes": "Primera versión estable.",
   "pub_date": "2026-03-03T12:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTUEZBcUpCNDV5N2xkN1F0Qi9wODBRaEQ1SmZYR0s0Smh2ZjZYM2cxdG1DZXF6czlKU0dVZnNQYStIZUkzK295eWFCK0N1SnlNcnYzSFBQYVdTR1pYZS9ZZjU1UDRyWEE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzcyNTY5MzcyCWZpbGU6UUEgQXV0b21hdGlvbiBTdWl0ZV8xLjEuMV94NjQtc2V0dXAuZXhlClM3ZXpHVVpRVjErTTRHZFpsbElhSCtkODlsNE0wU2lyYkRBMGJUa2dDR3hpdjlLZmppNlBFWFREd1d0cXN5c1pudmpNZHZrVFhJbWdNZlZkMks1ZkRBPT0K",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTUEZBcUpCNDV5N3JacGpRMWhwS2dKcWY3MlNKZ2t6Zm1uYjg1RzZFaWR1SEQwb3B5UkFuT2FKajd1bFF1MmF5WjZHdUVXQzRrVEVNTElFdkgxa1RyTmdkRW9idmJoNlFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzcyNTgwNzkxCWZpbGU6UUEgQXV0b21hdGlvbiBTdWl0ZV8xLjEuMl94NjQtc2V0dXAuZXhlCmxxU0NJWkRSQ0o3YzlSR1MzclBwS3VjbGIyYkdzNWRSWm1USENTQVhFbFVnYlcrbDV0MU85a01kV1hMTFJXVjlIR0pzNG9EdlZCTW9iQXR3VWxKQkJRPT0K",
       "url": "https://github.com/Automatizacion-WeeCompany/WeeWork/releases/download/v1.1.1/QA.Automation.Suite_1.1.1_x64-setup.exe"
     }
   }
