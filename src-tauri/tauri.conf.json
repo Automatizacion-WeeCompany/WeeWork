@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "QA Automation Suite",
-  "version": "0.1.0",
+  "version": "1.1.1",
   "identifier": "com.diego-bautista.tauri-app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -26,6 +26,7 @@
   },
   "bundle": {
     "active": true,
+    "resources": ["../CHANGELOG.md"],
     "targets": "all",
     "icon": [
       "icons/32x32.png",
@@ -34,5 +35,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://your-server.com/releases/update.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVFNzI4RTA3ODkwQTE0OEYKUldTUEZBcUpCNDV5N3Z4RnNJRjJ2L2JvOHBqbEhwNllDZnIveGVYY05EMEJ1eC9SL2Y3SG5peSsK"
+    }
   }
 }
