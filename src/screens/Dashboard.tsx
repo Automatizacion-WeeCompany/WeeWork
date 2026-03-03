@@ -21,6 +21,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
   const [showGuide, setShowGuide] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   
   // CA01 & CA02 States
   const [appVersion, setAppVersion] = useState("0.0.0");
@@ -42,14 +43,25 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
     }
   };
 
-  const checkForUpdates = async () => {
+  const checkForUpdates = async (isManualClick = false) => {
     try {
+      if (isManualClick) setIsChecking(true);
+      
       const update = await check();
+      
       if (update) {
         setUpdateAvailable(update);
+        // Si el usuario hizo clic manualmente, no lo molestamos con alerts, 
+        // el banner naranja aparecerá solo.
+      } else if (isManualClick) {
+        // Solo mostramos este alert si el usuario presionó el botón explícitamente
+        alert("¡Estás al día! No hay nuevas actualizaciones disponibles.");
       }
     } catch (e) {
       console.error("Error buscando actualizaciones:", e);
+      if (isManualClick) alert("Error al conectar con el servidor de actualizaciones.");
+    } finally {
+      if (isManualClick) setIsChecking(false);
     }
   };
 
@@ -63,7 +75,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
     })
     .catch(err => console.error(err));
     
-    checkForUpdates();
+    checkForUpdates(false);
   }, []);
 
   // --- LÓGICA DE ACTUALIZACIÓN (CA05, CA07) ---
@@ -124,7 +136,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
           marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center",
           fontWeight: "bold", border: "1px solid #e68a00"
         }}>
-          <span>🚀 Existe una nueva versión disponible: v{updateAvailable.version}</span>
+          <span>Existe una nueva versión disponible: v{updateAvailable.version}</span>
           <button onClick={() => setShowSettings(true)} style={{ backgroundColor: "black", color: "white", border: "none", padding: "5px 15px", borderRadius: "5px", cursor: "pointer" }}>
             Actualizar ahora
           </button>
@@ -161,11 +173,18 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
               {/* CA03 — Botón Buscar Actualizaciones */}
               <section style={{ display: "flex", gap: "10px" }}>
                 <button 
-                  onClick={updateAvailable ? handleUpdate : checkForUpdates} 
-                  disabled={isUpdating}
-                  style={{ flex: 1, padding: "12px", backgroundColor: updateAvailable ? "#4caf50" : "#006ab3", color: "white", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
+                  onClick={updateAvailable ? handleUpdate : () => checkForUpdates(true)}
+                  disabled={isUpdating || isChecking}
+                  style={{ flex: 1, padding: "12px", backgroundColor: updateAvailable ? "#4caf50" : "#006ab3", color: "white", 
+                    border: "none", borderRadius: "8px", fontWeight: "bold", cursor: (isUpdating || isChecking) ? "not-allowed" : "pointer",
+                    opacity: (isUpdating || isChecking) ? 0.7 : 1}}
                 >
-                  {isUpdating ? "Instalando..." : updateAvailable ? "Instalar v" + updateAvailable.version : "Buscar actualizaciones"}
+                  {isUpdating ? "Instalando..." 
+                  : isChecking
+                  ? "Consultando servidor..."
+                  : updateAvailable
+                  ? `Instalar v${updateAvailable.version}`
+                  : "Buscar actualizaciones"}
                 </button>
                 <button onClick={() => setShowSettings(false)} style={{ padding: "12px", backgroundColor: "#444", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>Cerrar</button>
               </section>
