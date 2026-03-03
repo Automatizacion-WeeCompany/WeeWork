@@ -39,7 +39,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://your-server.com/releases/update.json"
+        "https://raw.githubusercontent.com/Automatizacion-WeeCompany/WeeWork/ProdWeeWork/update.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVFNzI4RTA3ODkwQTE0OEYKUldTUEZBcUpCNDV5N3Z4RnNJRjJ2L2JvOHBqbEhwNllDZnIveGVYY05EMEJ1eC9SL2Y3SG5peSsK"
     }
