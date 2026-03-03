@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Capability for the main window","local":true,"windows":["main"],"permissions":["core:default","opener:default"]}}
+{"main-capability":{"identifier":"main-capability","description":"Capacidades básicas para el Dashboard","local":true,"windows":["main"],"permissions":["core:default","opener:default","updater:default","updater:allow-check","updater:allow-download-and-install","process:allow-restart"]}}

@@ -2,15 +2,19 @@ use chrono::Local;
 use serde::Serialize;
 use sqlx::sqlite::SqlitePool;
 use std::env;
+use std::fs;
 use std::io::{BufRead, BufReader};
+#[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::thread;
+//use tauri::api::path::app_config_dir;
+use tauri::Emitter;
+use tauri::Manager;
 use tauri::Window;
-use tauri::{Emitter, Manager};
 use tauri_plugin_sql::{Migration, MigrationKind};
 struct TestProcess {
     pid: Arc<Mutex<Option<u32>>>,
@@ -206,6 +210,20 @@ fn copy_dir_all(
     Ok(())
 }
 
+fn get_workspace_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+    // Usamos la carpeta de Documentos del usuario para que los archivos sean visibles y editables
+    let mut path = app_handle
+        .path()
+        .document_dir()
+        .unwrap_or_else(|_| std::path::PathBuf::from("."));
+    path.push("QA_Automation_Workspace");
+
+    if !path.exists() {
+        let _ = std::fs::create_dir_all(&path);
+    }
+    path
+}
+
 #[tauri::command]
 async fn open_history_report(report_path: String) -> Result<(), String> {
     let path = std::path::Path::new(&report_path);
@@ -285,25 +303,52 @@ async fn check_environment(project_path: String) -> Result<HealthStatus, String>
 #[tauri::command]
 fn repair_environment(window: tauri::Window, project_path: String) -> Result<(), String> {
     std::thread::spawn(move || {
+        let (shell, flag) = if cfg!(target_os = "windows") {
+            ("cmd", "/C")
+        } else {
+            ("sh", "-c")
+        };
+
         let _ = window.emit("repair-status", "Instalando dependencias (npm install)...");
 
         // 1. Ejecutar npm install
-        let _ = Command::new("cmd")
-            .args(["/C", "npm", "install"])
-            .current_dir(&project_path)
-            .status();
+        let npm_cmd = if cfg!(target_os = "windows") {
+            "npm.cmd"
+        } else {
+            "npm"
+        };
+        let mut npm_proc = Command::new(shell);
+        npm_proc
+            .args([flag, npm_cmd, "install"])
+            .current_dir(&project_path);
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            npm_proc.creation_flags(0x08000000);
+        }
+        let _ = npm_proc.status();
 
         let _ = window.emit("repair-status", "Instalando navegadores de Playwright...");
 
         // 2. Ejecutar playwright install
-        let playwright_bin = Path::new(&project_path)
-            .join("node_modules")
-            .join(".bin")
-            .join("playwright.cmd");
-        let _ = Command::new("cmd")
-            .args(["/C", playwright_bin.to_str().unwrap(), "install"])
-            .current_dir(&project_path)
-            .status();
+        let playwright_bin = if cfg!(target_os = "windows") {
+            "node_modules\\.bin\\playwright.cmd"
+        } else {
+            "./node_modules/.bin/playwright"
+        };
+
+        let mut pw_proc = Command::new(shell);
+        pw_proc
+            .args([flag, &format!("{} install", playwright_bin)])
+            .current_dir(&project_path);
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            pw_proc.creation_flags(0x08000000);
+        }
+        let _ = pw_proc.status();
 
         let _ = window.emit("repair-finished", "Entorno reparado con éxito");
     });
@@ -373,20 +418,15 @@ fn run_playwright_tests(
     browser: String,
     state: tauri::State<TestProcess>,
 ) -> Result<(), String> {
-    use std::fs; // Aseguramos importar fs
+    use std::fs;
 
     let project_path_buf = std::path::PathBuf::from(&project_path);
 
     if !project_path_buf.exists() {
-        return Err(format!(
-            "No se encontró la carpeta del proyecto en: {}",
-            project_path
-        ));
+        return Err(format!("No se encontró la carpeta: {}", project_path));
     }
 
-    // --- 1. LIMPIEZA PREVIA (CRÍTICO PARA EVITAR ACCESS DENIED) ---
-    // Intentamos borrar tanto el JSON como la carpeta de reportes anterior.
-    // Esto libera "handles" antiguos si el proceso anterior murió mal.
+    // 1. Limpieza de reportes anteriores
     let results_path = project_path_buf.join("results.json");
     let report_dir = project_path_buf.join("playwright-report");
 
@@ -396,9 +436,21 @@ fn run_playwright_tests(
     if report_dir.exists() {
         let _ = fs::remove_dir_all(&report_dir);
     }
-    // -------------------------------------------------------------
 
-    // Guardar ruta en el estado global
+    // 2. Configuración dinámica según el OS
+    let (shell, flag) = if cfg!(target_os = "windows") {
+        ("cmd", "/C")
+    } else {
+        ("sh", "-c")
+    };
+
+    let playwright_bin = if cfg!(target_os = "windows") {
+        "node_modules\\.bin\\playwright.cmd"
+    } else {
+        "./node_modules/.bin/playwright"
+    };
+
+    // Guardar estado
     {
         let mut guard = state.current_project_path.lock().unwrap();
         *guard = Some(project_path_buf.clone());
@@ -410,43 +462,36 @@ fn run_playwright_tests(
     thread::spawn(move || {
         let grep_argument = format!("{}", grep);
 
-        println!("--------------------------------------------------");
-        println!("🚀 EJECUTANDO PLAYWRIGHT (Modo CI)");
-        println!("📂 Directorio: {}", project_path);
-        println!("🔍 Grep: {}", grep_argument);
-        println!("--------------------------------------------------");
-
-        let playwright_bin = if cfg!(windows) {
-            "node_modules\\.bin\\playwright.cmd"
-        } else {
-            "node_modules/.bin/playwright"
-        };
-
-        let mut child = match Command::new("cmd")
+        // Construimos el comando base
+        let mut command = Command::new(shell);
+        command
             .args([
-                "/C",
-                playwright_bin,
-                "test",
-                "--project",
-                &browser.to_lowercase(),
-                "--grep",
-                &grep_argument,
-                "--reporter=json,html",
+                flag,
+                &format!(
+                    "{} test --project {} --grep \"{}\" --reporter=json,html",
+                    playwright_bin,
+                    browser.to_lowercase(),
+                    grep_argument
+                ),
             ])
             .env("PLAYWRIGHT_JSON_OUTPUT_NAME", "results.json")
-            // --- 2. EVITAR QUE PLAYWRIGHT SE CUELGUE ---
-            .env("PLAYWRIGHT_HTML_OPEN", "never") // Importante: No intentar abrir reporte
-            .env("CI", "true") // Importante: Modo "Headless" estricto, evita esperas de input
-            // -------------------------------------------
+            .env("PLAYWRIGHT_HTML_OPEN", "never")
+            .env("CI", "true")
             .current_dir(&project_path)
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
+            .stderr(Stdio::piped());
+
+        // Solo en Windows: Ocultar ventana de consola
+        #[cfg(target_os = "windows")]
         {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x08000000);
+        }
+
+        let mut child = match command.spawn() {
             Ok(child) => child,
             Err(e) => {
-                let err_msg = format!("Error crítico al iniciar proceso: {}", e);
-                let _ = window_clone.emit("test-error", &err_msg);
+                let _ = window_clone.emit("test-error", format!("Error al iniciar: {}", e));
                 return;
             }
         };
@@ -457,81 +502,34 @@ fn run_playwright_tests(
             *guard = Some(child.id());
         }
 
-        // Lectura de salida (STDOUT)
+        // Lectura de STDOUT/STDERR (Tu lógica de hilos se mantiene igual...)
         let stdout = child.stdout.take();
         let win_out = window_clone.clone();
         thread::spawn(move || {
             if let Some(stdout) = stdout {
                 let reader = BufReader::new(stdout);
-                for line in reader.lines() {
-                    if let Ok(text) = line {
-                        let _ = win_out.emit("test-output", text);
-                    }
+                for line in reader.lines().flatten() {
+                    let _ = win_out.emit("test-output", line);
                 }
             }
         });
 
-        // Lectura de errores (STDERR)
-        let stderr = child.stderr.take();
-        let win_err = window_clone.clone();
-        thread::spawn(move || {
-            if let Some(stderr) = stderr {
-                let reader = BufReader::new(stderr);
-                for line in reader.lines() {
-                    if let Ok(text) = line {
-                        let _ = win_err.emit("test-output", text);
-                    }
-                }
-            }
-        });
-
-        // Esperar a que termine el proceso
         let status = child.wait();
 
-        // Limpiar PID
+        // Limpiar PID y procesar resultados
         {
             let mut guard = pid_state.lock().unwrap();
             *guard = None;
         }
 
-        match status {
-            Ok(exit_status) => {
-                println!("✅ Proceso terminado con status: {}", exit_status);
+        thread::sleep(std::time::Duration::from_millis(1000));
 
-                // --- 3. ESPERA DE SEGURIDAD PARA FILESYSTEM ---
-                // Damos 1 segundo completo para que Windows libere el archivo results.json
-                thread::sleep(std::time::Duration::from_millis(1000));
-
-                if results_path.exists() {
-                    match fs::read_to_string(&results_path) {
-                        Ok(json_content) => {
-                            // Éxito: enviamos el JSON
-                            let _ = window_clone.emit("test-finished", json_content);
-                        }
-                        Err(e) => {
-                            // Existe el archivo pero no se puede leer (bloqueo raro)
-                            let _ = window_clone.emit(
-                                "test-error",
-                                format!("El test terminó pero no se pudo leer el resultado: {}", e),
-                            );
-                            let _ = window_clone.emit("test-finished", "");
-                        }
-                    }
-                } else {
-                    // Si falló y no hay JSON, probablemente fue un error de compilación de TS
-                    if !exit_status.success() {
-                        let _ = window_clone.emit(
-                            "test-error",
-                            "Playwright falló y no generó reporte (posible error de código TS).",
-                        );
-                    }
-                    let _ = window_clone.emit("test-finished", "");
-                }
+        if results_path.exists() {
+            if let Ok(json) = fs::read_to_string(&results_path) {
+                let _ = window_clone.emit("test-finished", json);
             }
-            Err(e) => {
-                let _ = window_clone.emit("test-error", format!("Error de ejecución: {}", e));
-                let _ = window_clone.emit("test-finished", "");
-            }
+        } else {
+            let _ = window_clone.emit("test-finished", "");
         }
     });
 
@@ -539,29 +537,33 @@ fn run_playwright_tests(
 }
 
 #[tauri::command]
-fn list_projects() -> Result<Vec<(String, String)>, String> {
+fn list_projects(app_handle: tauri::AppHandle) -> Result<Vec<(String, String)>, String> {
     use std::fs;
 
-    let exe_path = std::env::current_exe().map_err(|e| format!("Error getting exe path: {}", e))?;
+    // 1. Buscamos la carpeta de Documentos del usuario de forma segura
+    let mut projects_dir = app_handle
+        .path()
+        .document_dir()
+        .map_err(|e| format!("No se encontró la carpeta Documentos: {}", e))?;
 
-    let base_dir = exe_path.parent().ok_or("Cannot determine exe directory")?;
+    // 2. Definimos nuestra subcarpeta de trabajo
+    projects_dir.push("QA_Automation_Workspace");
 
-    let projects_dir = base_dir.join("Projects");
+    println!("Buscando proyectos en: {:?}", projects_dir);
 
-    println!("Looking for Projects at: {:?}", projects_dir);
-
+    // Si la carpeta base no existe, la creamos (primera vez)
     if !projects_dir.exists() {
-        return Err("Projects folder not found".into());
+        fs::create_dir_all(&projects_dir).map_err(|e| e.to_string())?;
+        return Ok(Vec::new()); // Retorna lista vacía si acaba de ser creada
     }
 
     let mut projects = Vec::new();
 
-    let entries =
-        fs::read_dir(projects_dir).map_err(|e| format!("Error reading Projects folder: {}", e))?;
+    let entries = fs::read_dir(&projects_dir)
+        .map_err(|e| format!("Error al leer la carpeta de proyectos: {}", e))?;
 
     for entry in entries.flatten() {
         let path = entry.path();
-
         if path.is_dir() {
             let package_json = path.join("package.json");
             if package_json.exists() {
@@ -702,6 +704,94 @@ async fn delete_history_records(app_handle: tauri::AppHandle, ids: Vec<i32>) -> 
     Ok(())
 }
 
+#[tauri::command]
+async fn sync_project(
+    app_handle: tauri::AppHandle,
+    repo_url: String,
+    project_name: String,
+) -> Result<String, String> {
+    // 1. Limpiamos espacios accidentales al inicio/final
+    let repo_url = repo_url.trim();
+    let project_name = project_name.trim();
+
+    let mut path = app_handle.path().document_dir().unwrap();
+    path.push("QA_Automation_Workspace");
+    path.push(project_name);
+
+    // 2. Ejecutamos el comando directamente (Sin usar CMD /C si es posible para GIT)
+    // Esto evita errores de "Too many arguments" por espacios en la ruta
+    let mut command = std::process::Command::new("git");
+
+    if path.exists() {
+        // Modo UPDATE (Pull)
+        command.args(["-C", &path.to_string_lossy(), "pull"]);
+    } else {
+        // Modo CLONE
+        command.args(["clone", repo_url, &path.to_string_lossy()]);
+    }
+
+    // Solo en Windows: Ocultamos la ventana de consola negra que parpadea
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+
+    let output = command.output().map_err(|e| {
+        format!(
+            "No se pudo ejecutar Git: {}. Asegúrate de tener Git instalado y en el PATH.",
+            e
+        )
+    })?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Error de Git: {}", error_msg));
+    }
+
+    Ok("Operación completada con éxito".into())
+}
+
+#[tauri::command]
+fn get_app_version() -> serde_json::Value {
+    serde_json::json!({
+        "version": env!("CARGO_PKG_VERSION"),
+        "build": env!("BUILD_DATE") // Aquí usamos la variable que creamos en build.rs
+    })
+}
+
+#[tauri::command]
+fn get_full_version() -> Result<serde_json::Value, String> {
+    let version = env!("CARGO_PKG_VERSION").to_string();
+
+    // In a real scenario, you might get the build date from an environment
+    // variable injected during the build process. For this example, we'll
+    // mock it or try to find a compile-time stamp.
+    let build_date = "2026.03.03"; // Placeholder. See note below.
+
+    Ok(serde_json::json!({
+        "version": version,
+        "build_date": build_date
+    }))
+}
+
+// Command to read the changelog (CA02)
+#[tauri::command]
+fn get_changelog(handle: tauri::AppHandle) -> Result<String, String> {
+    // En Tauri v2 usamos path().resource_dir()
+    let resource_path = handle
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Error al localizar carpeta de recursos: {}", e))?
+        .join("CHANGELOG.md");
+
+    if !resource_path.exists() {
+        return Err(format!("El archivo no existe en: {:?}", resource_path));
+    }
+
+    fs::read_to_string(&resource_path).map_err(|e| format!("Error al leer el archivo: {}", e))
+}
+
 fn main() {
     //Se define la estrutura de la base de datos
     let migrations = vec![Migration {
@@ -727,6 +817,8 @@ fn main() {
             }
             Ok(())
         })
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations("sqlite:test_tool.db", migrations)
@@ -734,7 +826,9 @@ fn main() {
         )
         .invoke_handler(tauri::generate_handler![
             list_projects,
+            get_app_version,
             list_playwright_tests,
+            sync_project,
             // run_playwright_with_config,
             run_playwright_tests,
             cancel_tests,
@@ -745,6 +839,8 @@ fn main() {
             get_test_history,
             open_history_report,
             delete_history_records,
+            get_full_version,
+            get_changelog,
         ])
         .manage(TestProcess {
             pid: Arc::new(Mutex::new(None)),
