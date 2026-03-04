@@ -222,41 +222,26 @@ async fn open_history_report(report_path: String) -> Result<(), String> {
 async fn check_environment(project_path: String) -> Result<HealthStatus, String> {
     let path = Path::new(&project_path);
 
-    let node_check = Command::new("node")
+    // Node check (Rápido)
+    let node_installed = Command::new("node")
         .arg("-v")
         .creation_flags(0x08000000)
-        .output();
-    let node_installed = node_check.is_ok();
+        .output()
+        .is_ok();
 
+    // node_modules check (Rápido)
     let node_modules_exists = path.join("node_modules").exists();
 
-    let playwright_bin = path
-        .join("node_modules")
-        .join(".bin")
-        .join("playwright.cmd");
-    let mut browsers_installed = false;
+    // Playwright check (Rápido: solo verificamos que el ejecutable esté ahí)
+    let playwright_bin = if cfg!(target_os = "windows") {
+        path.join("node_modules")
+            .join(".bin")
+            .join("playwright.cmd")
+    } else {
+        path.join("node_modules").join(".bin").join("playwright")
+    };
 
-    if playwright_bin.exists() {
-        let mut pw_check = Command::new("cmd");
-        pw_check
-            .args([
-                "/C",
-                playwright_bin.to_str().unwrap(),
-                "install",
-                "--dry-run",
-            ])
-            .current_dir(path);
-
-        #[cfg(target_os = "windows")]
-        {
-            use std::os::windows::process::CommandExt;
-            pw_check.creation_flags(0x08000000);
-        }
-
-        if let Ok(output) = pw_check.output() {
-            browsers_installed = output.status.success();
-        }
-    }
+    let browsers_installed = playwright_bin.exists();
 
     Ok(HealthStatus {
         node_installed,
@@ -319,34 +304,65 @@ fn repair_environment(window: tauri::Window, project_path: String) -> Result<(),
 }
 
 #[tauri::command]
-fn list_playwright_tests(project_path: String) -> Result<Vec<Suite>, String> {
-    let mut command = Command::new("cmd");
-    command
-        .args(["/C", "npx", "playwright", "test", "--list"])
-        .current_dir(&project_path);
+async fn list_playwright_tests(project_path: String) -> Result<Vec<Suite>, String> {
+    println!("📂 Escaneando tests en: {}", project_path);
 
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        command.creation_flags(0x08000000);
+    let path = std::path::Path::new(&project_path);
+    let playwright_bin = if cfg!(target_os = "windows") {
+        path.join("node_modules")
+            .join(".bin")
+            .join("playwright.cmd")
+    } else {
+        path.join("node_modules").join(".bin").join("playwright")
+    };
+
+    if !playwright_bin.exists() {
+        return Err(
+            "No se encontró el binario de Playwright. Ejecuta la reparación de entorno."
+                .to_string(),
+        );
     }
 
-    let output = command.output().map_err(|e| e.to_string())?;
+    let output = std::process::Command::new("cmd")
+        .args(["/C", playwright_bin.to_str().unwrap(), "test", "--list"])
+        .current_dir(&project_path)
+        .creation_flags(0x08000000)
+        .output()
+        .map_err(|e| format!("Fallo al ejecutar escaneo: {}", e))?;
 
     if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        let err_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Error de Playwright: {}", err_msg));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
+
     use std::collections::{HashMap, HashSet};
     let mut suites_map: HashMap<String, HashSet<String>> = HashMap::new();
 
     for line in stdout.lines() {
-        if line.contains("›") && line.contains(".spec.ts") {
-            let parts: Vec<&str> = line.split('›').collect();
-            if parts.len() >= 4 {
-                let suite_name = parts[2].trim().to_string();
-                let test_name = parts[3].trim().to_string();
+        let line = line.trim();
+        // Playwright --list usa el carácter '›' para separar niveles
+        if line.contains('›') {
+            let parts: Vec<&str> = line.split('›').map(|s| s.trim()).collect();
+
+            if parts.len() >= 2 {
+                // El último elemento es siempre el nombre del test
+                let test_name = parts.last().unwrap().to_string();
+
+                // Intentamos tomar la penúltima parte como el nombre de la "Suite" (o el archivo)
+                let mut suite_name = parts[parts.len() - 2].to_string();
+
+                // Si el nombre de la suite contiene ":", es probablemente un archivo con línea (ej: login.spec.ts:10)
+                // Lo limpiamos para que se vea bien en la UI
+                if suite_name.contains(':') && suite_name.contains(".spec.") {
+                    suite_name = suite_name
+                        .split(':')
+                        .next()
+                        .unwrap_or(&suite_name)
+                        .to_string();
+                }
+
                 suites_map.entry(suite_name).or_default().insert(test_name);
             }
         }
@@ -366,6 +382,16 @@ fn list_playwright_tests(project_path: String) -> Result<Vec<Suite>, String> {
         })
         .collect();
 
+    if suites.is_empty() {
+        return Err(
+            "No se encontraron tests. Asegúrate de tener archivos .spec.ts o .spec.js".to_string(),
+        );
+    }
+
+    println!(
+        "✅ Escaneo finalizado. {} suites encontradas.",
+        suites.len()
+    );
     Ok(suites)
 }
 
@@ -377,6 +403,8 @@ fn run_playwright_tests(
     browser: String,
     state: tauri::State<TestProcess>,
 ) -> Result<(), String> {
+    use std::fs;
+
     let project_path_buf = std::path::PathBuf::from(&project_path);
 
     if !project_path_buf.exists() {
@@ -412,26 +440,30 @@ fn run_playwright_tests(
     let pid_state = state.pid.clone();
     let window_clone = window.clone();
 
-    thread::spawn(move || {
+    std::thread::spawn(move || {
         let grep_argument = format!("{}", grep);
-        let mut command = Command::new(shell);
+        let mut command = std::process::Command::new(shell);
+
+        // AQUÍ ESTÁ LA MAGIA: Pasamos los argumentos separados como en tu versión original
         command
             .args([
                 flag,
-                &format!(
-                    "{} test --project {} --grep \"{}\" --reporter=json,html",
-                    playwright_bin,
-                    browser.to_lowercase(),
-                    grep_argument
-                ),
+                playwright_bin,
+                "test",
+                "--project",
+                &browser.to_lowercase(),
+                "--grep",
+                &grep_argument,
+                "--reporter=json,html",
             ])
             .env("PLAYWRIGHT_JSON_OUTPUT_NAME", "results.json")
             .env("PLAYWRIGHT_HTML_OPEN", "never")
             .env("CI", "true")
             .current_dir(&project_path)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
 
+        // Mantenemos la bandera para ocultar la consola en Windows
         #[cfg(target_os = "windows")]
         {
             use std::os::windows::process::CommandExt;
@@ -453,10 +485,10 @@ fn run_playwright_tests(
 
         let stdout = child.stdout.take();
         let win_out = window_clone.clone();
-        thread::spawn(move || {
+        std::thread::spawn(move || {
             if let Some(stdout) = stdout {
-                let reader = BufReader::new(stdout);
-                for line in reader.lines().flatten() {
+                let reader = std::io::BufReader::new(stdout);
+                for line in std::io::BufRead::lines(reader).flatten() {
                     let _ = win_out.emit("test-output", line);
                 }
             }
@@ -469,7 +501,7 @@ fn run_playwright_tests(
             *guard = None;
         }
 
-        thread::sleep(std::time::Duration::from_millis(1000));
+        std::thread::sleep(std::time::Duration::from_millis(1000));
 
         if results_path.exists() {
             if let Ok(json) = fs::read_to_string(&results_path) {
