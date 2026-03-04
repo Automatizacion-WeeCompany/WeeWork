@@ -103,6 +103,11 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
       alert("Por favor, completa la URL y el nombre de la carpeta.");
       return;
     }
+    const isDuplicate = projects.some((project) => project.name.toLowerCase() === nameState.toLowerCase());
+    if (isDuplicate) {
+      alert(`El proyecto "${nameState}" ya existe en tu lista. No es necesario clonarlo de nuevo.`);
+      return;
+    }
     setLoading(true);
     try {
       await invoke("sync_project", { repoUrl: urlState, projectName: nameState });
@@ -112,6 +117,25 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
     } catch (e) {
       alert(e); setShowGuide(true);
     } finally { setLoading(false); }
+  };
+
+  const handleDeleteProject = async (e: React.MouseEvent, projectName: string) => {
+    // Esto evita que al hacer clic en borrar, se seleccione el proyecto (se abra)
+    e.stopPropagation(); 
+  
+    const confirm = window.confirm(
+    `⚠️ ¡ADVERTENCIA!\n\nEstás a punto de eliminar TODO el proyecto "${projectName}" de tu equipo.\n\nSi decides continuar, se borrará todo y tendrías que clonarlo de nuevo si lo necesitas.\n\n¿Estás seguro de que deseas eliminarlo?`
+    );
+  
+    if (!confirm) return;
+
+    try {
+      await invoke("delete_project", { projectName });
+      alert("Proyecto eliminado con éxito.");
+      await loadProjects(); // Recargamos la lista automáticamente
+    } catch (error) {
+      alert(`Error al eliminar: ${error}`);
+    }
   };
 
   const openChangelog = async () => {
@@ -228,8 +252,25 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
             <div key={i} onClick={() => onSelectProject(p)} style={{ backgroundColor: "#006ab3", padding: "20px", borderRadius: "12px", cursor: "pointer", transition: "all 0.2s ease", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.backgroundColor = "#007cd1"; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.backgroundColor = "#006ab3"; }}>
-              <strong style={{ fontSize: "1.1rem", display: "block" }}>📁 {p.name}</strong>
-              <span style={{ fontSize: "10px", color: "#b0d4ff", opacity: 0.8 }}>{p.path}</span>
+                {/* Contenedor Flex para el título y el botón de borrar */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+                  <strong style={{ fontSize: "1.1rem", display: "block" }}>📁 {p.name}</strong>
+                  {/* BOTÓN DE ELIMINAR */}
+                  <button
+                    onClick={(e) => handleDeleteProject(e, p.name)}
+                    title="Eliminar proyecto"
+                    style={{
+                      backgroundColor: "#ff4d4d", color: "white", border: "none", borderRadius: "5px",
+                      padding: "5px 10px", cursor: "pointer", fontWeight: "bold", fontSize: "14px",
+                      boxShadow: "0 2px 5px rgba(0,0,0,0.3)"
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#ff1a1a"}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#ff4d4d"}
+                    >
+                      Eliminar
+                    </button>
+                </div>
+                <span style={{ fontSize: "10px", color: "#b0d4ff", opacity: 0.8, wordBreak: "break-all" }}>{p.path}</span>
             </div>
           ))}
         </div>
