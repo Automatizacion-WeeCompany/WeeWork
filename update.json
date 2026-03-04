@@ -4,8 +4,8 @@
   "pub_date": "2026-03-03T12:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTUEZBcUpCNDV5N3JacGpRMWhwS2dKcWY3MlNKZ2t6Zm1uYjg1RzZFaWR1SEQwb3B5UkFuT2FKajd1bFF1MmF5WjZHdUVXQzRrVEVNTElFdkgxa1RyTmdkRW9idmJoNlFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzcyNTgwNzkxCWZpbGU6UUEgQXV0b21hdGlvbiBTdWl0ZV8xLjEuMl94NjQtc2V0dXAuZXhlCmxxU0NJWkRSQ0o3YzlSR1MzclBwS3VjbGIyYkdzNWRSWm1USENTQVhFbFVnYlcrbDV0MU85a01kV1hMTFJXVjlIR0pzNG9EdlZCTW9iQXR3VWxKQkJRPT0K",
-      "url": "https://github.com/Automatizacion-WeeCompany/WeeWork/releases/download/v1.1.2/QA.Automation.Suite_1.1.2_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTUEZBcUpCNDV5N20rVkdGSHRwSm9GK0N0cjU2dDM4bU0rR2cxZUtaMnFQYTd2V1pVMGlzQ0d6T1hhNHdFL3YyWFlJQ0NKMzZ3RnJOMXEvWDZMNVRhVC8rWGtrRmhtendBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzcyNTgzNzQyCWZpbGU6UUEtQXV0b21hdGlvbi1TdWl0ZS12MS4xLjIuZXhlCjM4TGt0SEpoeHRhdmdwZUFRdzkzV0VWOUZaSkkwdnAxUEtGSWdzaThDZGlkZVpvNWdFR1dQSkhURFV5YWhhdm03M1lyb3FFY3UrS05JQkw5UllNd0JRPT0K",
+      "url": "https://github.com/Automatizacion-WeeCompany/WeeWork/releases/download/v1.1.2/QA-Automation-Suite-v1.1.2.exe"
     }
   }
 }
