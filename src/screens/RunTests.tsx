@@ -161,6 +161,7 @@ export default function RunTests({ project, onExecute, logs, isRunning, onCancel
     });
 
     const grepPattern = Array.from(new Set(cleanIds)).join("|");
+    console.log(`Greep final ${grepPattern}`);
     onExecute({ grep: grepPattern, browser });
   };
 
