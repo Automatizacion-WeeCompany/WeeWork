@@ -710,46 +710,108 @@ async fn sync_project(
     repo_url: String,
     project_name: String,
 ) -> Result<String, String> {
-    // 1. Limpiamos espacios accidentales al inicio/final
     let repo_url = repo_url.trim();
     let project_name = project_name.trim();
 
-    let mut path = app_handle.path().document_dir().unwrap();
-    path.push("QA_Automation_Workspace");
-    path.push(project_name);
-
-    // 2. Ejecutamos el comando directamente (Sin usar CMD /C si es posible para GIT)
-    // Esto evita errores de "Too many arguments" por espacios en la ruta
-    let mut command = std::process::Command::new("git");
-
-    if path.exists() {
-        // Modo UPDATE (Pull)
-        command.args(["-C", &path.to_string_lossy(), "pull"]);
-    } else {
-        // Modo CLONE
-        command.args(["clone", repo_url, &path.to_string_lossy()]);
+    if repo_url.is_empty() || project_name.is_empty() {
+        return Err("La URL y el nombre del proyecto no pueden estar vacíos.".into());
     }
 
-    // Solo en Windows: Ocultamos la ventana de consola negra que parpadea
+    let mut workspace_path = app_handle.path().document_dir().map_err(|_| {
+        "Error del sistema: No se pudo acceder a la carpeta de Documentos.".to_string()
+    })?;
+    workspace_path.push("QA_Automation_Workspace");
+
+    // --- NUEVA VALIDACIÓN: URL DUPLICADA ---
+    // Normalizamos la URL (quitamos .git al final y la pasamos a minúsculas para comparar bien)
+    let normalized_new_url = repo_url.trim_end_matches(".git").to_lowercase();
+
+    if workspace_path.exists() {
+        if let Ok(entries) = std::fs::read_dir(&workspace_path) {
+            for entry in entries.flatten() {
+                let project_dir = entry.path();
+                if project_dir.is_dir() {
+                    // Consultamos a Git cuál es la URL de esta carpeta
+                    let mut cmd = std::process::Command::new("git");
+                    cmd.current_dir(&project_dir);
+                    cmd.args(["config", "--get", "remote.origin.url"]);
+
+                    #[cfg(target_os = "windows")]
+                    {
+                        use std::os::windows::process::CommandExt;
+                        cmd.creation_flags(0x08000000);
+                    }
+
+                    if let Ok(output) = cmd.output() {
+                        let existing_url =
+                            String::from_utf8_lossy(&output.stdout).trim().to_string();
+                        let normalized_existing =
+                            existing_url.trim_end_matches(".git").to_lowercase();
+
+                        // Si las URLs coinciden, bloqueamos el proceso
+                        if !normalized_existing.is_empty()
+                            && normalized_existing == normalized_new_url
+                        {
+                            return Err(format!(
+                                "Este repositorio ya se encuentra clonado en la carpeta '{}'.",
+                                entry.file_name().to_string_lossy()
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // ---------------------------------------
+
+    let mut path = workspace_path.clone();
+    path.push(project_name);
+
+    // Validación de nombre duplicado (la que ya teníamos)
+    if path.exists() {
+        return Err(format!("Ya existe una carpeta llamada '{}'.", project_name));
+    }
+
+    let mut command = std::process::Command::new("git");
+    command.args(["clone", repo_url, &path.to_string_lossy()]);
+
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
 
-    let output = command.output().map_err(|e| {
-        format!(
-            "No se pudo ejecutar Git: {}. Asegúrate de tener Git instalado y en el PATH.",
-            e
-        )
-    })?;
+    let output = command
+        .output()
+        .map_err(|e| format!("Error ejecutando Git: {}", e))?;
 
     if !output.status.success() {
         let error_msg = String::from_utf8_lossy(&output.stderr);
         return Err(format!("Error de Git: {}", error_msg));
     }
 
-    Ok("Operación completada con éxito".into())
+    Ok("Proyecto clonado con éxito".into())
+}
+
+#[tauri::command]
+async fn delete_project(
+    app_handle: tauri::AppHandle,
+    project_name: String,
+) -> Result<String, String> {
+    let mut path = app_handle
+        .path()
+        .document_dir()
+        .map_err(|_| "Error del sistema".to_string())?;
+    path.push("QA_Automation_Workspace");
+    path.push(&project_name);
+
+    if path.exists() {
+        // Borramos el directorio y todo su contenido
+        std::fs::remove_dir_all(&path).map_err(|e| format!("No se pudo eliminar: {}", e))?;
+        Ok("Proyecto eliminado con éxito.".into())
+    } else {
+        Err("El proyecto no existe en el sistema.".into())
+    }
 }
 
 #[tauri::command]
@@ -841,6 +903,7 @@ fn main() {
             delete_history_records,
             get_full_version,
             get_changelog,
+            delete_project,
         ])
         .manage(TestProcess {
             pid: Arc::new(Mutex::new(None)),
