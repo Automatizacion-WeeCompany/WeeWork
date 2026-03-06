@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { open } from '@tauri-apps/plugin-shell';
 
 type Project = {
   name: string;
@@ -22,6 +23,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [showDocumentation,setShowDocumentation] = useState(false);
   
   // CA01 & CA02 States
   const [appVersion, setAppVersion] = useState("0.0.0");
@@ -150,6 +152,13 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
     }
   };
 
+  const handleOpenDocs= async (url:string) => {
+    try{
+      await open(url)
+    }catch{
+      console.error("Error abiendo la url");
+    }
+  }
   return (
     <div style={{ padding: "20px", display: "flex", flexDirection: "column", minHeight: "95vh", color: "white" }}>
       
@@ -229,6 +238,30 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
             </div>
           </div>
         )}
+        {/* --- MODAL DOCUMENTACION Y MATRICES --- */}
+        {showDocumentation && (
+          <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.8)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px" }}>
+            <div style={{backgroundColor: "#1e1e1e", padding: "30px", borderRadius: "15px", maxWidth: "600px", border: "1px solid #006ab3"}}>
+              <h3 style={{ color: "#006ab3", marginTop: 0 }}>Documentacion de los proyectos</h3>
+              <p style={{ color: "#ccc", marginBottom: "25px" }}>La documentacion proporcionada aqui es responsabilidad del equipo QA y el equipo de Documentacion</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                <button
+                  onClick={() => handleOpenDocs("https://docs.google.com/spreadsheets/d/1OfhO6OAOXXjvbnaXQeWJ7t0jaVnnKlmJ/edit?usp=sharing&ouid=100188614620631772642&rtpof=true&sd=true")}
+                  style={{ padding: "12px", backgroundColor: "#2e7d32", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
+                >
+                  Abrir Matriz Gasto Médico Mayor Banorte
+                </button>
+                <button
+                  onClick={() => handleOpenDocs("https://drive.google.com/drive/folders/1LouYr5JCTszzbt-uZAoTJbjGcPoqtFOW?usp=sharing")}
+                  style={{ padding: "12px", backgroundColor: "#2e7d32", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
+                >
+                  Manuales de proyectos
+                </button>
+              <button onClick={() => setShowDocumentation(false)} style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: "#006ab3", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>Aceptar</button>
+              </div>
+            </div>
+          </div>    
+        )}
 
         {/* --- HEADER --- */}
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
@@ -241,9 +274,10 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
           <input placeholder="URL de Git (HTTPS)" value={urlState} onChange={e => setRepoUrl(e.target.value)} style={{ flex: 2, padding: "12px", borderRadius: "8px", border: "1px solid #333", backgroundColor: "#000", color: "white" }} />
           <input placeholder="Nombre del Proyecto" value={nameState} onChange={e => setNewName(e.target.value)} style={{ flex: 1, padding: "12px", borderRadius: "8px", border: "1px solid #333", backgroundColor: "#000", color: "white" }} />
           <button onClick={handleClone} disabled={loading} style={{ padding: "12px 25px", backgroundColor: loading ? "#555" : "#006ab3", color: "white", border: "none", borderRadius: "8px", cursor: loading ? "not-allowed" : "pointer", fontWeight: "bold" }}>
-            {loading ? "Procesando..." : "Clonar / Actualizar"}
+            {loading ? "Procesando..." : "Agregar / Actualizar proyecto"}
           </button>
           <button onClick={() => setShowGuide(true)} style={{ padding: "12px", backgroundColor: "transparent", color: "#006ab3", border: "1px solid #006ab3", borderRadius: "8px", cursor: "pointer" }}>❓</button>
+          <button onClick={() => setShowDocumentation(true)} style={{ padding: "12px", backgroundColor: "transparent", color: "#006ab3", border: "1px solid #006ab3", borderRadius: "8px", cursor: "pointer" }}>Documentacion</button>
         </div>
 
         {/* --- GRID DE PROYECTOS --- */}
