@@ -98,8 +98,10 @@ function App() {
   const cancelExecution = async () => {
     try {
       await invoke("cancel_tests");
+      setIsRunning(false);
     } catch (e) {
-      console.error(e);
+      console.error("Error al cancelar", e);
+      setIsRunning(false);
     }
   };
 

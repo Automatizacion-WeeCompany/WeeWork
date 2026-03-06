@@ -9,7 +9,7 @@ type Props = {
   onOpenReport: () => Promise<void>; 
 };
 
-export default function Results({ results, logs, onRetry, projectPath, onOpenReport }: Props) {
+export default function Results({ results, onRetry, onOpenReport }: Props) {
   // 1. Los Hooks siempre deben ir al inicio (Regla de React)
   const [isOpening, setIsOpening] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
