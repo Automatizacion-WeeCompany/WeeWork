@@ -10,25 +10,12 @@ type HealthStatus = {
   project_ready: boolean;
 };
 
-type TestItem = {
-  id: string;
-  name: string;
-};
-
-type Suite = {
-  suite: string;
-  tests: TestItem[];
-};
-
-type SelectedTests = {
-  [suite: string]: string[];
-};
+type TestItem = { id: string; name: string; };
+type Suite = { suite: string; tests: TestItem[]; };
+type SelectedTests = { [suite: string]: string[]; };
 
 type Props = {
-  project: {
-    name: string;
-    path: string;
-  };
+  project: { name: string; path: string; };
   onExecute: (config: { grep: string; browser: string }) => void;
   logs: string;
   isRunning: boolean;
@@ -40,56 +27,48 @@ export default function RunTests({ project, onExecute, logs, isRunning, onCancel
   const [suites, setSuites] = useState<Suite[]>([]);
   const [selected, setSelected] = useState<SelectedTests>({});
   const [browser, setBrowser] = useState("Chromium");
-
-  // --- Estados del Health Check ---
+  
+  // --- Estados del Health Check y Reparación ---
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [isRepairing, setIsRepairing] = useState(false);
   const [repairMessage, setRepairMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true); // Control de carga inicial
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // --- Estado local para la UI de cancelación ---
+  const [wasCancelled, setWasCancelled] = useState(false);
 
-  // Ref para manejar la limpieza del listener de forma segura
   const unlistenRef = useRef<UnlistenFn | null>(null);
 
   useEffect(() => {
     if (!project?.path) return;
-
     let isMounted = true;
 
     const initialize = async () => {
       setIsLoading(true);
       try {
-        // Ejecutamos ambas llamadas en paralelo para evitar múltiples re-renders
         const [healthRes, testsRes] = await Promise.all([
           invoke<HealthStatus>("check_environment", { projectPath: project.path }),
           invoke<Suite[]>("list_playwright_tests", { projectPath: project.path })
         ]);
 
         if (!isMounted) return;
-
-        // Mapeo seguro para evitar crash si el backend devuelve algo inesperado
-        const mapped: Suite[] = (testsRes || []).map((s: any) => ({
-          suite: s.suite || "Sin suite",
-          tests: (s.tests || []).map((t: any) => ({
-            id: t.id,
-            name: t.name
-          }))
-        }));
-
         setHealth(healthRes);
-        setSuites(mapped);
+        setSuites((testsRes || []).map((s: any) => ({
+          suite: s.suite || "Sin suite",
+          tests: (s.tests || []).map((t: any) => ({ id: t.id, name: t.name }))
+        })));
       } catch (error) {
-        console.error("Error inicializando RunTests:", error);
+        console.error("Error inicializando:", error);
       } finally {
         if (isMounted) setIsLoading(false);
       }
     };
 
-    // Configuración de Listeners
     const setupListeners = async () => {
       const u1 = await listen("repair-status", (event) => {
         if (isMounted) setRepairMessage(event.payload as string);
       });
-
+      
       const u2 = await listen("repair-finished", (event) => {
         if (isMounted) {
           setRepairMessage(event.payload as string);
@@ -98,31 +77,26 @@ export default function RunTests({ project, onExecute, logs, isRunning, onCancel
         }
       });
 
-      unlistenRef.current = () => {
-        u1();
-        u2();
-      };
+      const u3 = await listen("test-cancelled", () => {
+        if (isMounted) setWasCancelled(true);
+      });
+
+      const u4 = await listen("test-finished", () => {
+        if (isMounted) setWasCancelled(false);
+      });
+
+      unlistenRef.current = () => { u1(); u2(); u3(); u4(); };
     };
 
     initialize();
     setupListeners();
-
-    return () => {
-      isMounted = false;
-      if (unlistenRef.current) unlistenRef.current();
-    };
+    return () => { isMounted = false; if (unlistenRef.current) unlistenRef.current(); };
   }, [project.path]);
 
   const checkEnv = async () => {
     if (!project?.path) return;
-    try {
-      const status = await invoke<HealthStatus>("check_environment", { 
-        projectPath: project.path 
-      });
-      setHealth(status);
-    } catch (error) {
-      console.error("Error en health check:", error);
-    }
+    const status = await invoke<HealthStatus>("check_environment", { projectPath: project.path });
+    setHealth(status);
   };
 
   const handleRepair = async () => {
@@ -136,57 +110,66 @@ export default function RunTests({ project, onExecute, logs, isRunning, onCancel
     }
   };
 
-  const toggleTest = (suite: string, testId: string) => {
-    setSelected((prev) => {
-      const tests = prev[suite] || [];
-      return {
-        ...prev,
-        [suite]: tests.includes(testId)
-          ? tests.filter((t) => t !== testId)
-          : [...tests, testId]
-      };
-    });
+  const handleInternalCancel = () => {
+    setWasCancelled(true);
+    onCancel(); 
   };
 
-  const handleExecute = async () => {
-    const allSelectedRaw = Object.values(selected).flat();
-    if (allSelectedRaw.length === 0) {
-      alert("Selecciona al menos una prueba");
-      return;
-    }
+  const handleResetAfterCancel = () => {
+    setWasCancelled(false);
+  };
 
+  const handleExecute = () => {
+    setWasCancelled(false);
+    const allSelectedRaw = Object.values(selected).flat();
+    if (allSelectedRaw.length === 0) return alert("Selecciona al menos una prueba");
     const cleanIds = allSelectedRaw.map(id => {
       const match = id.match(/ESC_\d+/);
       return match ? match[0] : id;
     });
-
-    const grepPattern = Array.from(new Set(cleanIds)).join("|");
-    console.log(`Greep final ${grepPattern}`);
-    onExecute({ grep: grepPattern, browser });
+    onExecute({ grep: Array.from(new Set(cleanIds)).join("|"), browser });
   };
 
-  // --- RENDERIZADO DE CARGA PARA EVITAR CRASH ---
-  if (isLoading) {
-    return (
-      <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
-        <h3>🔍 Validando configuración...</h3>
-        <p>Escaneando archivos en {project.name}</p>
-      </div>
-    );
-  }
+  const toggleTest = (suite: string, testId: string) => {
+    setSelected((prev) => {
+      const tests = prev[suite] || [];
+      return { ...prev, [suite]: tests.includes(testId) ? tests.filter(t => t !== testId) : [...tests, testId] };
+    });
+  };
+
+  if (isLoading) return <div style={{ padding: "40px", textAlign: "center", color: "#666" }}><h3>🔍 Validando configuración...</h3></div>;
 
   return (
     <div style={{ padding: "10px" }}>
-      <button onClick={onBack} disabled={isRunning} style={{ marginBottom: "15px" }}>⬅️ Volver al Dashboard</button>
+      
+      {/* --- UI DE CANCELACIÓN --- */}
+      {wasCancelled && (
+        <div style={{ 
+          background: "rgba(244, 67, 54, 0.15)", 
+          border: "1px solid #f44336", 
+          padding: "20px", 
+          borderRadius: "8px", 
+          marginBottom: "20px",
+          textAlign: "center"
+        }}>
+          <h3 style={{ color: "#f44336", margin: "0 0 10px 0" }}>⛔ Ejecución Detenida</h3>
+          <p style={{ color: "#eee", marginBottom: "15px" }}>La prueba se canceló correctamente.</p>
+          <button 
+            onClick={handleResetAfterCancel}
+            style={{ padding: "10px 25px", background: "#2e7d32", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
+          >
+            Aceptar
+          </button>
+        </div>
+      )}
+
+      <button onClick={onBack} disabled={isRunning && !wasCancelled} style={{ marginBottom: "15px" }}>⬅️ Volver al Dashboard</button>
       
       {/* --- CARD DE ESTADO DE SALUD (HEALTH CHECK) --- */}
       <div style={{ 
-        background: "#1e1e1e", 
-        color: "white", 
-        padding: "15px", 
-        borderRadius: "8px", 
-        marginBottom: "20px",
-        border: health?.project_ready ? "1px solid #2e7d32" : "1px solid #d32f2f"
+        background: "#1e1e1e", color: "white", padding: "15px", borderRadius: "8px", marginBottom: "20px",
+        border: health?.project_ready ? "1px solid #2e7d32" : "1px solid #d32f2f",
+        opacity: isRunning ? 0.6 : 1
       }}>
         <h4 style={{ margin: "0 0 10px 0" }}>🛠 Validación del Proyecto</h4>
         <div style={{ display: "flex", gap: "15px", fontSize: "0.85rem", marginBottom: "10px" }}>
@@ -201,25 +184,22 @@ export default function RunTests({ project, onExecute, logs, isRunning, onCancel
           </span>
         </div>
 
+        {/* RESTAURADO: Botón de reparación automática */}
         {!health?.project_ready && !isRepairing && (
           <button 
             onClick={handleRepair}
             style={{ 
-              background: "#d32f2f", 
-              color: "white", 
-              border: "none", 
-              padding: "8px 12px", 
-              borderRadius: "4px", 
-              cursor: "pointer",
-              fontWeight: "bold"
+              background: "#d32f2f", color: "white", border: "none", padding: "8px 12px", 
+              borderRadius: "4px", cursor: "pointer", fontWeight: "bold", marginTop: "5px" 
             }}
           >
             🔧 Reparar Entorno Automáticamente
           </button>
         )}
 
+        {/* RESTAURADO: Mensaje de reparación en curso */}
         {isRepairing && (
-          <div style={{ color: "#ff9800", fontWeight: "bold" }}>
+          <div style={{ color: "#ff9800", fontWeight: "bold", marginTop: "10px" }}>
             ⏳ {repairMessage}...
           </div>
         )}
@@ -227,20 +207,20 @@ export default function RunTests({ project, onExecute, logs, isRunning, onCancel
 
       <h2>Flujos del proyecto: {project?.name}</h2>
 
-      <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid #444", padding: "10px", borderRadius: "5px" }}>
+      <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid #444", padding: "10px", borderRadius: "5px", background: "#1a1a1a" }}>
         {suites.length === 0 ? (
-           <p style={{ color: "#888" }}>No se encontraron archivos de prueba.</p>
+          <p style={{ color: "#888" }}>No se encontraron archivos de prueba.</p>
         ) : suites.map((s) => (
           <div key={s.suite} style={{ marginBottom: "15px" }}>
-            <h3 style={{ borderBottom: "1px solid #444" }}>{s.suite}</h3>
+            <h3 style={{ borderBottom: "1px solid #444", fontSize: "1rem" }}>{s.suite}</h3>
             {s.tests.map((t) => (
-              <label key={t.id} style={{ display: "block", padding: "4px 0", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={selected[s.suite]?.includes(t.id) || false}
-                  onChange={() => toggleTest(s.suite, t.id)}
-                />
-                {" "}{t.name}
+              <label key={t.id} style={{ display: "block", padding: "4px 0", cursor: isRunning ? "default" : "pointer", fontSize: "0.9rem" }}>
+                <input 
+                  type="checkbox" 
+                  disabled={isRunning} 
+                  checked={selected[s.suite]?.includes(t.id) || false} 
+                  onChange={() => toggleTest(s.suite, t.id)} 
+                /> {" "}{t.name}
               </label>
             ))}
           </div>
@@ -249,11 +229,11 @@ export default function RunTests({ project, onExecute, logs, isRunning, onCancel
 
       <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: "10px" }}>
         <label htmlFor="browser-select"><b>Navegador:</b></label>
-        <select
+        <select 
           id="browser-select"
-          value={browser}
-          onChange={(e) => setBrowser(e.target.value)}
-          style={{ padding: "5px" }}
+          value={browser} 
+          onChange={(e) => setBrowser(e.target.value)} 
+          style={{ padding: "5px", borderRadius: "4px", background: "#333", color: "white", border: "1px solid #555" }}
         >
           <option value="Chromium">Chrome</option>
           <option value="Firefox">Firefox</option>
@@ -261,44 +241,35 @@ export default function RunTests({ project, onExecute, logs, isRunning, onCancel
       </div>
 
       <div style={{ marginTop: 20 }}>
-        <button 
-          style={{ 
-            padding: "10px 25px", 
-            fontSize: "1rem", 
-            cursor: (isRunning || !health?.project_ready) ? "not-allowed" : "pointer",
-            background: (isRunning || !health?.project_ready) ? "#555" : "#2e7d32",
-            color: "white",
-            border: "none",
-            borderRadius: "5px"
-          }} 
-          disabled={isRunning || !health?.project_ready}
-          onClick={handleExecute}
-        >
-          {isRunning ? "🚀 Ejecutando..." : health?.project_ready ? "▶ Ejecutar pruebas" : "⚠️ Entorno no listo"}
-        </button>
+        {/* RESTAURADO: Texto dinámico de "Entorno no listo" vs "Ejecutar" */}
+        {!isRunning && !wasCancelled && (
+           <button 
+             style={{ 
+               padding: "10px 25px", fontSize: "1rem", cursor: !health?.project_ready ? "not-allowed" : "pointer",
+               background: !health?.project_ready ? "#555" : "#2e7d32", color: "white", border: "none", borderRadius: "5px"
+             }} 
+             disabled={!health?.project_ready}
+             onClick={handleExecute}
+           >
+             {health?.project_ready ? "▶ Ejecutar pruebas" : "⚠️ Entorno no listo"}
+           </button>
+        )}
 
-        {isRunning && (
-          <button
-            style={{ marginLeft: 10, padding: "10px", background: "#d32f2f", color: "white", border: "none", borderRadius: "5px" }}
-            onClick={onCancel}
-          >
-            ⛔ Cancelar
-          </button>
+        {/* Botón cancelar mientras corre */}
+        {isRunning && !wasCancelled && (
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+             <span style={{ color: "#4caf50", fontWeight: "bold" }}>🚀 Ejecutando...</span>
+             <button
+               style={{ padding: "10px 20px", background: "#d32f2f", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
+               onClick={handleInternalCancel}
+             >
+               ⛔ Cancelar
+             </button>
+          </div>
         )}
       </div>
 
-      <div style={{ 
-        marginTop: 20, 
-        background: "#111", 
-        color: "#0f0", 
-        padding: "10px", 
-        height: "200px", 
-        overflowY: "auto", 
-        fontFamily: "monospace",
-        fontSize: "0.85rem",
-        borderRadius: "5px",
-        border: "1px solid #333"
-      }}>
+      <div style={{ marginTop: 20, background: "#000", color: "#0f0", padding: "15px", height: "200px", overflowY: "auto", fontFamily: "monospace", fontSize: "0.85rem", borderRadius: "5px", border: "1px solid #333" }}>
         <pre style={{ margin: 0 }}>{logs || "> Esperando ejecución..."}</pre>
       </div>
     </div>

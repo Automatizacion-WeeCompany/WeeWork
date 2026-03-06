@@ -1,6 +1,6 @@
 [package]
 name = "tauri-app"
-version = "1.1.5" # Esta es la versión de tu app, no de Tauri
+version = "1.1.6" # Esta es la versión de tu app, no de Tauri
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -25,4 +25,5 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio-rustls"] }
 chrono = "0.4"
 open = "5.0"
+tauri-plugin-shell = "2"
 

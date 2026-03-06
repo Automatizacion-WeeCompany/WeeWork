@@ -4,12 +4,14 @@
 use chrono::Local;
 use serde::Serialize;
 use sqlx::sqlite::SqlitePool;
+use std::collections::HashSet;
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::Emitter;
@@ -19,6 +21,7 @@ use tauri::Window;
 struct TestProcess {
     pid: Arc<Mutex<Option<u32>>>,
     current_project_path: Arc<Mutex<Option<std::path::PathBuf>>>,
+    is_cancelled: Arc<AtomicBool>,
 }
 
 #[derive(Serialize)]
@@ -426,6 +429,7 @@ fn run_playwright_tests(
     } else {
         ("sh", "-c")
     };
+
     let playwright_bin = if cfg!(target_os = "windows") {
         "node_modules\\.bin\\playwright.cmd"
     } else {
@@ -437,14 +441,17 @@ fn run_playwright_tests(
         *guard = Some(project_path_buf.clone());
     }
 
+    // Reiniciamos la bandera de cancelación al empezar una nueva prueba
+    state.is_cancelled.store(false, Ordering::SeqCst);
+
     let pid_state = state.pid.clone();
+    let is_cancelled_state = state.is_cancelled.clone(); // Clonamos para el hilo
     let window_clone = window.clone();
 
     std::thread::spawn(move || {
         let grep_argument = format!("{}", grep);
         let mut command = std::process::Command::new(shell);
 
-        // AQUÍ ESTÁ LA MAGIA: Pasamos los argumentos separados como en tu versión original
         command
             .args([
                 flag,
@@ -463,7 +470,6 @@ fn run_playwright_tests(
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
 
-        // Mantenemos la bandera para ocultar la consola en Windows
         #[cfg(target_os = "windows")]
         {
             use std::os::windows::process::CommandExt;
@@ -494,6 +500,7 @@ fn run_playwright_tests(
             }
         });
 
+        // Esperamos a que el proceso termine (ya sea natural o por taskkill)
         let _ = child.wait();
 
         {
@@ -503,6 +510,15 @@ fn run_playwright_tests(
 
         std::thread::sleep(std::time::Duration::from_millis(1000));
 
+        // --- LA MAGIA: VERIFICAMOS SI FUE CANCELADO ---
+        if is_cancelled_state.load(Ordering::SeqCst) {
+            println!("Proceso cancelado, ignorando resultados.");
+            // Emitimos un evento especial o simplemente no emitimos "test-finished"
+            let _ = window_clone.emit("test-cancelled", "");
+            return; // Salimos del hilo prematuramente
+        }
+
+        // Si no fue cancelado, procesamos normalmente
         if results_path.exists() {
             if let Ok(json) = fs::read_to_string(&results_path) {
                 let _ = window_clone.emit("test-finished", json);
@@ -548,6 +564,9 @@ fn list_projects(app_handle: tauri::AppHandle) -> Result<Vec<(String, String)>, 
 
 #[tauri::command]
 fn cancel_tests(state: tauri::State<TestProcess>) -> Result<(), String> {
+    // 1. Marcamos que la prueba fue cancelada
+    state.is_cancelled.store(true, Ordering::SeqCst);
+
     let pid = {
         let guard = state.pid.lock().unwrap();
         *guard
@@ -557,7 +576,6 @@ fn cancel_tests(state: tauri::State<TestProcess>) -> Result<(), String> {
         let mut cmd = Command::new("taskkill");
         cmd.args(["/PID", &pid.to_string(), "/T", "/F"]);
 
-        // --- AQUÍ FALTABA EL FLAG ---
         #[cfg(target_os = "windows")]
         {
             use std::os::windows::process::CommandExt;
@@ -796,8 +814,43 @@ fn get_changelog(handle: tauri::AppHandle) -> Result<String, String> {
     fs::read_to_string(&resource_path).map_err(|e| format!("Error: {}", e))
 }
 
+#[tauri::command]
+async fn get_unique_projects(app_handle: tauri::AppHandle) -> Result<Vec<String>, String> {
+    use sqlx::Row;
+
+    // 1. Obtenemos la URL de la base de datos centralizada
+    let db_url = get_db_url(&app_handle)?;
+    // 2. Nos conectamos a la base de datos
+    let pool = SqlitePool::connect(&db_url)
+        .await
+        .map_err(|e| format!("Error de conexión: {}", e))?;
+
+    // 3. Ejecutamos la query para obtener todos los project_name, sin orden específico ya que usaremos un HashSet
+    let rows = sqlx::query("SELECT DISTINCT project_name FROM test_history")
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| format!("Error en query: {}", e))?;
+
+    // 4. Usamos un HashSet para recopilar nombres de proyectos únicos
+    let mut unique_projects = HashSet::new();
+    for row in rows {
+        if let Ok(project_name) = row.try_get::<String, _>("project_name") {
+            unique_projects.insert(project_name);
+        }
+    }
+
+    // 5. Convertimos el HashSet a un Vec ordenado alfabéticamente
+    let mut projects: Vec<String> = unique_projects.into_iter().collect();
+    projects.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+
+    // 6. Cerramos la conexión y devolvemos la lista
+    pool.close().await;
+    Ok(projects)
+}
+
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         // --- INICIALIZACIÓN NATIVA DE SQLITE ---
         .setup(|app| {
             let handle = app.handle().clone();
@@ -851,10 +904,12 @@ fn main() {
             get_full_version,
             get_changelog,
             delete_project,
+            get_unique_projects,
         ])
         .manage(TestProcess {
             pid: Arc::new(Mutex::new(None)),
             current_project_path: Arc::new(Mutex::new(None)),
+            is_cancelled: Arc::new(AtomicBool::new(false)),
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
