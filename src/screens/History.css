@@ -315,3 +315,32 @@
     from { opacity: 1; }
     to { opacity: 0; }
 }
+
+.custom-tooltip-chart {
+  background-color: #1e1e1e;
+  border: 1px solid #444;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+.tooltip-project {
+  color: #00d4ff;
+  font-weight: bold;
+  margin: 0 0 5px 0;
+}
+.tooltip-date {
+  font-size: 0.85em;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+.chart-wrapper {
+  background: #252525;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.chart-title {
+  text-align: center;
+  color: #eee;
+  margin-bottom: 20px;
+}
