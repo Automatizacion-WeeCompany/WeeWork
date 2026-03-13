@@ -12,9 +12,10 @@ type Project = {
 interface DashboardProps {
   onSelectProject: (project: Project) => void;
   onGoToHistory: () => void;
+  userRole: "admin" | "viewer" | null;
 }
 
-export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardProps) {
+export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: DashboardProps) {
   // --- ESTADOS ---
   const [projects, setProjects] = useState<Project[]>([]);
   const [urlState, setRepoUrl] = useState("");
@@ -101,6 +102,10 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
   };
 
   const handleClone = async () => {
+    if (userRole !== "admin") {
+      alert("Solo un administrador puede agregar o actualizar proyectos.");
+      return;
+    }
     if (!urlState || !nameState) {
       alert("Por favor, completa la URL y el nombre de la carpeta.");
       return;
@@ -112,7 +117,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
     }
     setLoading(true);
     try {
-      await invoke("sync_project", { repoUrl: urlState, projectName: nameState });
+      await invoke("sync_project", { repoUrl: urlState, projectName: nameState, role: userRole });
       alert("¡Operación exitosa!");
       setRepoUrl(""); setNewName("");
       await loadProjects();
@@ -122,6 +127,10 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
   };
 
   const handleDeleteProject = async (e: React.MouseEvent, projectName: string) => {
+    if (userRole !== "admin") {
+      alert("Solo un administrador puede eliminar proyectos.");
+      return;
+    }
     // Esto evita que al hacer clic en borrar, se seleccione el proyecto (se abra)
     e.stopPropagation(); 
   
@@ -132,7 +141,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
     if (!confirm) return;
 
     try {
-      await invoke("delete_project", { projectName });
+      await invoke("delete_project", { projectName, role: userRole });
       alert("Proyecto eliminado con éxito.");
       await loadProjects(); // Recargamos la lista automáticamente
     } catch (error) {
@@ -273,7 +282,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
         <div style={{ display: "flex", gap: "10px", marginBottom: "40px", flexWrap: "wrap", alignItems: "center", backgroundColor: "#1e1e1e", padding: "20px", borderRadius: "12px" }}> 
           <input placeholder="URL de Git (HTTPS)" value={urlState} onChange={e => setRepoUrl(e.target.value)} style={{ flex: 2, padding: "12px", borderRadius: "8px", border: "1px solid #333", backgroundColor: "#000", color: "white" }} />
           <input placeholder="Nombre del Proyecto" value={nameState} onChange={e => setNewName(e.target.value)} style={{ flex: 1, padding: "12px", borderRadius: "8px", border: "1px solid #333", backgroundColor: "#000", color: "white" }} />
-          <button onClick={handleClone} disabled={loading} style={{ padding: "12px 25px", backgroundColor: loading ? "#555" : "#006ab3", color: "white", border: "none", borderRadius: "8px", cursor: loading ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+          <button onClick={handleClone} disabled={loading || userRole !== "admin"} style={{ padding: "12px 25px", backgroundColor: (loading || userRole !== "admin") ? "#555" : "#006ab3", color: "white", border: "none", borderRadius: "8px", cursor: (loading || userRole !== "admin") ? "not-allowed" : "pointer", fontWeight: "bold" }}>
             {loading ? "Procesando..." : "Agregar / Actualizar proyecto"}
           </button>
           <button onClick={() => setShowGuide(true)} style={{ padding: "12px", backgroundColor: "transparent", color: "#006ab3", border: "1px solid #006ab3", borderRadius: "8px", cursor: "pointer" }}>❓</button>
@@ -298,6 +307,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
                       padding: "5px 10px", cursor: "pointer", fontWeight: "bold", fontSize: "14px",
                       boxShadow: "0 2px 5px rgba(0,0,0,0.3)"
                     }}
+                    disabled={userRole !== "admin"}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#ff1a1a"}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#ff4d4d"}
                     >
@@ -325,7 +335,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory }: DashboardP
           onClick={() => setShowSettings(true)} 
           style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", gap: "5px" }}
         >
-          Configuración / Acerca de
+          Acerca de
         </button>
       </footer>
     </div>
