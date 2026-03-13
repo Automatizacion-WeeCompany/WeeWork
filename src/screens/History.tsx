@@ -22,8 +22,7 @@ interface HistoryProps {
 
 const History: React.FC<HistoryProps> = ({ onBack }) => {
   const [records, setRecords] = useState<ExecutionRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [loading, setLoading] = useState(true); // Se mantiene para mostrar estado de carga
 
   // --- ESTADOS DE VISTA Y FILTROS ---
   const [showChart, setShowChart] = useState(false);
@@ -121,53 +120,64 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
     XLSX.writeFile(wb, "Reporte_QA.xlsx");
   };
 
-  const renderTable = () => (
-    <div className="table-container">
-      <table className="history-table">
-        <thead>
-          <tr>
-            <th><input type="checkbox" onChange={(e) => setSelectedIds(e.target.checked ? filteredRecords.map(r => r.id) : [])} /></th>
-            <th>FECHA</th>
-            <th>PROYECTO / TESTS</th>
-            <th className="text-center">ÉXITO %</th>
-            <th className="text-center">TOTAL</th>
-            <th className="text-center">✅</th>
-            <th className="text-center">❌</th>
-            <th className="text-right">DURACIÓN</th>
-            <th className="text-center">EVIDENCIA</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredRecords.map((rec) => {
-            const pct = rec.total_tests > 0 ? (rec.passed / rec.total_tests) * 100 : 0;
-            return (
-              <tr key={rec.id} className={selectedIds.includes(rec.id) ? "row-selected" : ""}>
-                <td><input type="checkbox" checked={selectedIds.includes(rec.id)} onChange={() => {
-                  setSelectedIds(prev => prev.includes(rec.id) ? prev.filter(i => i !== rec.id) : [...prev, rec.id]);
-                }} /></td>
-                <td className="cell-date">{formatDate(rec.execution_date)}</td>
-                <td>
-                  <div className="project-name-bold">{rec.project_name}</div>
-                  <div className="test-names-subtext">{rec.test_names || "Sin detalles"}</div>
-                </td>
-                <td className="text-center">
-                   <div className="progress-container"><div className="progress-bar" style={{width: `${pct}%`, backgroundColor: pct > 50 ? '#4caf50' : '#f44336'}} /></div>
-                   <small>{pct.toFixed(0)}%</small>
-                </td>
-                <td className="text-center">{rec.total_tests}</td>
-                <td className="text-center cell-passed">{rec.passed}</td>
-                <td className="text-center cell-failed">{rec.failed}</td>
-                <td className="text-right">{rec.duration.toFixed(2)}s</td>
-                <td className="text-center">
-                  <button className="evidence-btn" onClick={() => rec.report_path && openReport(rec.report_path)}>Ver</button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
+  const renderTable = () => {
+    // AQUÍ ESTÁ EL USO DE LA VARIABLE "loading": Si está cargando, muestra el mensaje, si no, muestra la tabla.
+    if (loading) {
+      return (
+        <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
+          <h3>⏳ Cargando historial de ejecuciones...</h3>
+        </div>
+      );
+    }
+
+    return (
+      <div className="table-container">
+        <table className="history-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" onChange={(e) => setSelectedIds(e.target.checked ? filteredRecords.map(r => r.id) : [])} /></th>
+              <th>FECHA</th>
+              <th>PROYECTO / TESTS</th>
+              <th className="text-center">ÉXITO %</th>
+              <th className="text-center">TOTAL</th>
+              <th className="text-center">✅</th>
+              <th className="text-center">❌</th>
+              <th className="text-right">DURACIÓN</th>
+              <th className="text-center">EVIDENCIA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRecords.map((rec) => {
+              const pct = rec.total_tests > 0 ? (rec.passed / rec.total_tests) * 100 : 0;
+              return (
+                <tr key={rec.id} className={selectedIds.includes(rec.id) ? "row-selected" : ""}>
+                  <td><input type="checkbox" checked={selectedIds.includes(rec.id)} onChange={() => {
+                    setSelectedIds(prev => prev.includes(rec.id) ? prev.filter(i => i !== rec.id) : [...prev, rec.id]);
+                  }} /></td>
+                  <td className="cell-date">{formatDate(rec.execution_date)}</td>
+                  <td>
+                    <div className="project-name-bold">{rec.project_name}</div>
+                    <div className="test-names-subtext">{rec.test_names || "Sin detalles"}</div>
+                  </td>
+                  <td className="text-center">
+                     <div className="progress-container"><div className="progress-bar" style={{width: `${pct}%`, backgroundColor: pct > 50 ? '#4caf50' : '#f44336'}} /></div>
+                     <small>{pct.toFixed(0)}%</small>
+                  </td>
+                  <td className="text-center">{rec.total_tests}</td>
+                  <td className="text-center cell-passed">{rec.passed}</td>
+                  <td className="text-center cell-failed">{rec.failed}</td>
+                  <td className="text-right">{rec.duration.toFixed(2)}s</td>
+                  <td className="text-center">
+                    <button className="evidence-btn" onClick={() => rec.report_path && openReport(rec.report_path)}>Ver</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <div className="history-container">

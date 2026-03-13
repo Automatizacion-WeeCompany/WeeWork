@@ -6,8 +6,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 import History from "./screens/History";
+import Login from "./screens/Login";
 
-// Añadimos "history" a los tipos de pantalla por si quieres navegar allí luego
+// Definición de tipos
 type Screen = "dashboard" | "run" | "results" | "history";
 
 type Project = {
@@ -22,51 +23,43 @@ function App() {
   const [logs, setLogs] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estado de seguridad y roles
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<"admin" | "viewer" | null>(null);
 
   // --- LÓGICA DE PERSISTENCIA ---
   const persistExecution = async (parsedJson: any) => {
     if (!selectedProject) return;
 
     try {
-      // 1. Extraer métricas del JSON de Playwright
-      // Recorremos las suites y specs para contar resultados
-      let total = 0;
-      let passed = 0;
-      let namesArray: string[] = [];
+      const agg = { total: 0, passed: 0, names: [] as string[] };
 
-      parsedJson.suites?.forEach((suite: any) => {
-        suite.specs?.forEach((spec: any) => {
-          total++;
-          // Verificamos el estado del primer resultado del test
-          namesArray.push(spec.title);
-          if (spec.tests?.[0]?.results?.[0]?.status === "passed") {
-            passed++;
-          }
+      const walkSuites = (suite: any) => {
+        suite?.specs?.forEach((spec: any) => {
+          agg.total += 1;
+          agg.names.push(spec.title);
+          const anyPassed = spec.tests?.some((t: any) =>
+            t.results?.some((r: any) => r.status === "passed")
+          );
+          if (anyPassed) agg.passed += 1;
         });
-        // Si hay suites anidadas (describe)
-        suite.suites?.forEach((subSuite: any) => {
-            subSuite.specs?.forEach((spec: any) => {
-                total++;
-                namesArray.push(spec.title);
-                if (spec.tests?.[0]?.results?.[0]?.status === "passed") {
-                  passed++;
-                }
-            });
-        });
-      });
+        suite?.suites?.forEach((child: any) => walkSuites(child));
+      };
 
-      const failed = total - passed;
+      parsedJson?.suites?.forEach((suite: any) => walkSuites(suite));
+
+      const failed = agg.total - agg.passed;
       const durationMs = parsedJson.stats?.duration || 0;
 
-      // 2. Invocar el comando de Rust para guardar en SQLite
       await invoke("save_test_execution", {
         projectName: selectedProject.name,
         projectPath: selectedProject.path,
-        testNames: namesArray.join(", "),
-        totalTests: total,
-        passed: passed,
+        testNames: agg.names.join(", "),
+        totalTests: agg.total,
+        passed: agg.passed,
         failed: failed,
-        duration: durationMs / 1000, // Guardamos en segundos para legibilidad
+        duration: durationMs / 1000,
       });
 
       console.log("📊 Ejecución persistida en base de datos correctamente.");
@@ -83,7 +76,6 @@ function App() {
     setIsRunning(true);
 
     try {
-      console.log("Project path:", selectedProject.path);
       await invoke<any>("run_playwright_tests", {
         projectPath: selectedProject.path,
         grep: config.grep,
@@ -105,6 +97,7 @@ function App() {
     }
   };
 
+  // Escuchadores de eventos de Tauri
   useEffect(() => {
     const unlistenOutput = listen<string>("test-output", (event) => {
       setLogs((prev) => prev + event.payload + "\n");
@@ -123,16 +116,11 @@ function App() {
         try {
           const parsed = JSON.parse(json);
           setExecutionResult(parsed);
-          
-          // LLAMADA A LA PERSISTENCIA:
-          // Guardamos los datos automáticamente al terminar
           persistExecution(parsed);
-          
         } catch (e) {
           console.error("Error parseando JSON de resultados:", e);
         }
       }
-
       setScreen("results");
     });
 
@@ -141,7 +129,7 @@ function App() {
       unlistenFinished.then((fn) => fn());
       unlistenError.then((fn) => fn());
     };
-  }, [selectedProject]); // Escuchamos cambios en el proyecto seleccionado para la persistencia
+  }, [selectedProject]);
 
   const renderRunScreen = () => {
     if (!selectedProject) {
@@ -151,6 +139,7 @@ function App() {
     return (
       <RunTests
         project={selectedProject}
+        userRole={userRole} // Enviamos el rol para controlar permisos de edición de Excel
         onExecute={executeTests}
         logs={logs}
         isRunning={isRunning}
@@ -164,20 +153,33 @@ function App() {
     );
   };
 
+  // --- RENDERIZADO CONDICIONAL DE SEGURIDAD ---
+  if (!isAuthenticated) {
+    return (
+      <Login 
+        onLoginSuccess={(role: string) => {
+          setIsAuthenticated(true);
+          setUserRole(role as "admin" | "viewer");
+        }} 
+      />
+    );
+  }
+
   return (
     <div className="app-container">
-      {/* Botón opcional para volver al dashboard si ocurre un error */}
+      {/* Alerta de Error Global */}
       {error && (
-        <div style={{ background: "#f8d7da", color: "#721c24", padding: "15px", borderRadius: "5px", marginBottom: "20px" }}>
-          <strong>⚠️ Error:</strong> {error}
-          <button onClick={() => setError(null)} style={{ marginLeft: "10px" }}>Limpiar</button>
+        <div style={{ background: "#f8d7da", color: "#721c24", padding: "15px", borderRadius: "5px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span><strong>⚠️ Error:</strong> {error}</span>
+          <button onClick={() => setError(null)} style={{ padding: "5px 10px", cursor: "pointer" }}>Limpiar</button>
         </div>
       )}
 
+      {/* Navegación de Pantallas */}
       {screen === "dashboard" && (
         <Dashboard
+          userRole={userRole}
           onSelectProject={(project) => {
-            console.log("📥 Recibido en App:", project);
             setSelectedProject(project);
             setScreen("run");
           }}

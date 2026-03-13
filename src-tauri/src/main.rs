@@ -6,17 +6,29 @@ use serde::Serialize;
 use sqlx::sqlite::SqlitePool;
 use std::collections::HashSet;
 use std::fs;
-use std::io::{BufRead, BufReader};
+#[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
-use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::thread;
 use tauri::Emitter;
 use tauri::Manager;
 use tauri::Window;
+
+fn validate_project_name(name: &str) -> Result<(), String> {
+    if name.is_empty() || name.len() > 80 {
+        return Err("Nombre de proyecto inválido".into());
+    }
+    if !name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err("El nombre solo puede contener letras, números, guion y guion bajo".into());
+    }
+    Ok(())
+}
 
 struct TestProcess {
     pid: Arc<Mutex<Option<u32>>>,
@@ -141,7 +153,12 @@ async fn save_test_execution(
     let mut saved_report_path: Option<String> = None;
 
     if source_report.exists() {
-        match copy_dir_all(&source_report, &dest_report) {
+        let dest_clone = dest_report.clone();
+        let copy_result = tauri::async_runtime::spawn_blocking(move || copy_dir_all(&source_report, &dest_clone))
+            .await
+            .unwrap_or_else(|e| Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())));
+
+        match copy_result {
             Ok(_) => {
                 let final_html = dest_report.join("index.html");
                 saved_report_path = Some(final_html.to_string_lossy().to_string());
@@ -257,23 +274,11 @@ async fn check_environment(project_path: String) -> Result<HealthStatus, String>
 #[tauri::command]
 fn repair_environment(window: tauri::Window, project_path: String) -> Result<(), String> {
     std::thread::spawn(move || {
-        let (shell, flag) = if cfg!(target_os = "windows") {
-            ("cmd", "/C")
-        } else {
-            ("sh", "-c")
-        };
-
         let _ = window.emit("repair-status", "Instalando dependencias (npm install)...");
 
-        let npm_cmd = if cfg!(target_os = "windows") {
-            "npm.cmd"
-        } else {
-            "npm"
-        };
-        let mut npm_proc = Command::new(shell);
-        npm_proc
-            .args([flag, npm_cmd, "install"])
-            .current_dir(&project_path);
+        let npm_cmd = if cfg!(target_os = "windows") { "npm.cmd" } else { "npm" };
+        let mut npm_proc = Command::new(npm_cmd);
+        npm_proc.arg("install").current_dir(&project_path);
 
         #[cfg(target_os = "windows")]
         {
@@ -289,10 +294,8 @@ fn repair_environment(window: tauri::Window, project_path: String) -> Result<(),
         } else {
             "./node_modules/.bin/playwright"
         };
-        let mut pw_proc = Command::new(shell);
-        pw_proc
-            .args([flag, &format!("{} install", playwright_bin)])
-            .current_dir(&project_path);
+        let mut pw_proc = Command::new(playwright_bin);
+        pw_proc.arg("install").current_dir(&project_path);
 
         #[cfg(target_os = "windows")]
         {
@@ -326,10 +329,16 @@ async fn list_playwright_tests(project_path: String) -> Result<Vec<Suite>, Strin
         );
     }
 
-    let output = std::process::Command::new("cmd")
-        .args(["/C", playwright_bin.to_str().unwrap(), "test", "--list"])
-        .current_dir(&project_path)
-        .creation_flags(0x08000000)
+    let mut cmd = std::process::Command::new(&playwright_bin);
+    cmd.args(["test", "--list"]).current_dir(&project_path);
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000);
+    }
+
+    let output = cmd
         .output()
         .map_err(|e| format!("Fallo al ejecutar escaneo: {}", e))?;
 
@@ -424,16 +433,26 @@ fn run_playwright_tests(
         let _ = fs::remove_dir_all(&report_dir);
     }
 
-    let (shell, flag) = if cfg!(target_os = "windows") {
-        ("cmd", "/C")
-    } else {
-        ("sh", "-c")
-    };
+    // Validación básica para evitar shells y navegadores no soportados
+    let browser_norm = browser.to_lowercase();
+    let allowed = ["chromium", "firefox", "webkit"];
+    if !allowed.contains(&browser_norm.as_str()) {
+        return Err("Navegador no soportado".to_string());
+    }
+
+    // Evitar patrones peligrosos en grep; se usa Command::new (sin shell) pero limitamos longitud.
+    if grep.len() > 200 {
+        return Err("Patrón de grep demasiado largo".into());
+    }
 
     let playwright_bin = if cfg!(target_os = "windows") {
-        "node_modules\\.bin\\playwright.cmd"
+        std::path::Path::new("node_modules")
+            .join(".bin")
+            .join("playwright.cmd")
     } else {
-        "./node_modules/.bin/playwright"
+        std::path::Path::new("node_modules")
+            .join(".bin")
+            .join("playwright")
     };
 
     {
@@ -447,26 +466,26 @@ fn run_playwright_tests(
     let pid_state = state.pid.clone();
     let is_cancelled_state = state.is_cancelled.clone(); // Clonamos para el hilo
     let window_clone = window.clone();
+    let browser_arg = browser_norm.clone();
+    let grep_arg = grep.clone();
+    let project_dir = project_path.clone();
 
     std::thread::spawn(move || {
-        let grep_argument = format!("{}", grep);
-        let mut command = std::process::Command::new(shell);
+        let mut command = std::process::Command::new(&playwright_bin);
 
         command
             .args([
-                flag,
-                playwright_bin,
                 "test",
                 "--project",
-                &browser.to_lowercase(),
+                &browser_arg,
                 "--grep",
-                &grep_argument,
+                &grep_arg,
                 "--reporter=json,html",
             ])
             .env("PLAYWRIGHT_JSON_OUTPUT_NAME", "results.json")
             .env("PLAYWRIGHT_HTML_OPEN", "never")
             .env("CI", "true")
-            .current_dir(&project_path)
+            .current_dir(&project_dir)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
 
@@ -685,7 +704,14 @@ async fn sync_project(
     app_handle: tauri::AppHandle,
     repo_url: String,
     project_name: String,
+    role: Option<String>,
 ) -> Result<String, String> {
+    if role.as_deref() != Some("admin") {
+        return Err("No autorizado para clonar proyectos".into());
+    }
+
+    validate_project_name(&project_name)?;
+
     let repo_url = repo_url.trim();
     let project_name = project_name.trim();
 
@@ -769,7 +795,13 @@ async fn sync_project(
 async fn delete_project(
     app_handle: tauri::AppHandle,
     project_name: String,
+    role: Option<String>,
 ) -> Result<String, String> {
+    if role.as_deref() != Some("admin") {
+        return Err("No autorizado para eliminar proyectos".into());
+    }
+    validate_project_name(&project_name)?;
+
     let mut path = app_handle
         .path()
         .document_dir()
@@ -848,6 +880,82 @@ async fn get_unique_projects(app_handle: tauri::AppHandle) -> Result<Vec<String>
     Ok(projects)
 }
 
+#[derive(serde::Serialize)]
+pub struct LoginResponse {
+    pub success: bool,
+    pub role: String, // "admin" o "viewer"
+}
+#[tauri::command]
+fn validate_login(username: String, password: String) -> Result<LoginResponse, String> {
+    // Definimos los usuarios
+    let users = vec![
+        ("admin", "adminQA*", "admin"),
+        ("tester_1", "QA123", "admin"),
+        ("tester_2", "QA123", "admin"),
+        ("powee_1", "poweeNeg*", "viewer"),
+        ("powee_2", "poweeNeg*", "viewer"),
+    ];
+
+    // .iter() crea referencias, por eso usamos *u y *p para comparar correctamente
+    let found = users
+        .iter()
+        .find(|&(u, p, _r)| *u == username && *p == password);
+
+    match found {
+        Some((_u, _p, role)) => {
+            // Importante: Ok con O mayúscula
+            Ok(LoginResponse {
+                success: true,
+                role: role.to_string(),
+            })
+        }
+        None => Err("Credenciales incorrectas".into()),
+    }
+}
+
+#[tauri::command]
+async fn replace_excel_file(
+    app_handle: tauri::AppHandle,
+    project_path: String,
+    source_path: String,
+    role: Option<String>,
+) -> Result<String, String> {
+    if role.as_deref() != Some("admin") {
+        return Err("No autorizado para reemplazar la matriz".into());
+    }
+
+    // Validamos que el proyecto viva dentro del workspace
+    let mut workspace = app_handle
+        .path()
+        .document_dir()
+        .map_err(|e| format!("Error al resolver workspace: {}", e))?;
+    workspace.push("QA_Automation_Workspace");
+    let canonical_workspace = workspace.canonicalize().unwrap_or(workspace.clone());
+    let canonical_project = PathBuf::from(&project_path)
+        .canonicalize()
+        .map_err(|e| format!("Ruta de proyecto inválida: {}", e))?;
+    if !canonical_project.starts_with(&canonical_workspace) {
+        return Err("Ruta de proyecto fuera del workspace permitido".into());
+    }
+
+    // 1. Construir la ruta de destino: <project_path>/src/datos
+    let dest_dir = PathBuf::from(&project_path).join("src").join("datos");
+
+    // 2. Asegurarnos de que la carpeta exista (por si acaso)
+    if !dest_dir.exists() {
+        fs::create_dir_all(&dest_dir)
+            .map_err(|e| format!("Error al crear carpetas destino: {}", e))?;
+    }
+
+    // 3. Agregar el nombre del archivo final
+    let dest_file = dest_dir.join("SuitePruebas.xlsx");
+
+    // 4. Ejecutar la copia (esto sobreescribe si ya existe)
+    fs::copy(&source_path, &dest_file).map_err(|e| format!("Error al copiar archivo: {}", e))?;
+
+    Ok("Matriz de pruebas actualizada con éxito".into())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -887,6 +995,8 @@ fn main() {
         })
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             list_projects,
             get_app_version,
@@ -905,6 +1015,8 @@ fn main() {
             get_changelog,
             delete_project,
             get_unique_projects,
+            validate_login,
+            replace_excel_file,
         ])
         .manage(TestProcess {
             pid: Arc::new(Mutex::new(None)),
