@@ -1,0 +1,11 @@
+{
+  "version": "1.1.7",
+  "notes": "Primera versión estable.",
+  "pub_date": "2026-03-03T12:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTUEZBcUpCNDV5N3RZV1o0V2tCZFlDL0VvV1FqQXJXb203ai9KZTluelZCZFJLU2xOMjdrNnlVT2xkQTEyMXNOL2NRUFZmbDQvS0NncTRydmxENXZNQXhsNHVHcFo2TEFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczMzYwNzQ3CWZpbGU6UUEtQXV0b21hdGlvbi1TdWl0ZS12MS4xLjdzZXR1cC5leGUKdzBTRjVWZEVEcDc5R1Q4aGhLMm1LZjVxdlhwbkpGTy9QSlBjMmFTS3JXTWwvbHhzTWNOdDVYQjJXV2tSS2pscEFaWlpoNThoK1NFeGxhVFVJaUJZQWc9PQo=",
+      "url": "https://github.com/Automatizacion-WeeCompany/WeeWork/releases/download/v1.1.7/QA-Automation-Suite-v1.1.7setup.exe"
+    }
+  }
+}
