@@ -3,3 +3,10 @@ name: Build Tauri App
 on:
   release:
     types: [created]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+  build-macos:
+    runs-on: macos-latest
