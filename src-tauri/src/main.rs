@@ -243,11 +243,14 @@ async fn check_environment(project_path: String) -> Result<HealthStatus, String>
     let path = Path::new(&project_path);
 
     // Node check (Rápido)
-    let node_installed = Command::new("node")
-        .arg("-v")
-        .creation_flags(0x08000000)
-        .output()
-        .is_ok();
+    let mut node_cmd = Command::new("node");
+    node_cmd.arg("-v");
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        node_cmd.creation_flags(0x08000000);
+    }
+    let node_installed = node_cmd.output().is_ok();
 
     // node_modules check (Rápido)
     let node_modules_exists = path.join("node_modules").exists();
@@ -592,16 +595,22 @@ fn cancel_tests(state: tauri::State<TestProcess>) -> Result<(), String> {
     };
 
     if let Some(pid) = pid {
-        let mut cmd = Command::new("taskkill");
-        cmd.args(["/PID", &pid.to_string(), "/T", "/F"]);
+        if cfg!(target_os = "windows") {
+            let mut cmd = Command::new("taskkill");
+            cmd.args(["/PID", &pid.to_string(), "/T", "/F"]);
 
-        #[cfg(target_os = "windows")]
-        {
-            use std::os::windows::process::CommandExt;
-            cmd.creation_flags(0x08000000);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000);
+            }
+
+            cmd.spawn().map_err(|e| e.to_string())?;
+        } else {
+            let mut cmd = Command::new("kill");
+            cmd.args(["-TERM", &pid.to_string()]);
+            cmd.spawn().map_err(|e| e.to_string())?;
         }
-
-        cmd.spawn().map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -614,10 +623,14 @@ fn open_html_report(state: tauri::State<TestProcess>) -> Result<(), String> {
     };
 
     let project_path = project_path.ok_or("No se ha seleccionado ningún proyecto")?;
-    let playwright_bin = project_path
-        .join("node_modules")
-        .join(".bin")
-        .join("playwright.cmd");
+    let playwright_bin = if cfg!(target_os = "windows") {
+        project_path
+            .join("node_modules")
+            .join(".bin")
+            .join("playwright.cmd")
+    } else {
+        project_path.join("node_modules").join(".bin").join("playwright")
+    };
     let report_folder = project_path.join("playwright-report");
 
     if !playwright_bin.exists() {
@@ -827,9 +840,10 @@ fn get_app_version() -> serde_json::Value {
 
 #[tauri::command]
 fn get_full_version() -> Result<serde_json::Value, String> {
+    let build_date = option_env!("BUILD_DATE").unwrap_or("unknown");
     Ok(serde_json::json!({
         "version": env!("CARGO_PKG_VERSION").to_string(),
-        "build_date": "2026.03.03"
+        "build_date": build_date
     }))
 }
 

@@ -12,6 +12,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 # ELIMINADO: features = ["updater"] ya no existe aquí en v2
 tauri-build = { version = "2", features = [] }
+chrono = "0.4"
 
 [dependencies]
 tauri = { version = "2", features = [] }
@@ -28,4 +29,3 @@ open = "5.0"
 tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2.6.0"
 tauri-plugin-fs = "2.4.5"
-

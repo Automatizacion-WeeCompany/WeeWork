@@ -1,0 +1,5 @@
+name: Build Tauri App
+
+on:
+  release:
+    types: [created]
