@@ -28,6 +28,14 @@ jobs:
         with:
           name: windows-build
           path: src-tauri/target/release/bundle/**/*
+      - name: Subir .exe al release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-macos:
     runs-on: macos-latest
@@ -52,3 +60,11 @@ jobs:
         with:
           name: macos-build
           path: src-tauri/target/release/bundle/**/*
+      
+      - name: Subir .dmg al release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            src-tauri/target/release/bundle/**/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
