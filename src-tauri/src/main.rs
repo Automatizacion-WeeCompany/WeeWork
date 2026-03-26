@@ -293,11 +293,17 @@ fn repair_environment(window: tauri::Window, project_path: String) -> Result<(),
         let _ = window.emit("repair-status", "Instalando navegadores de Playwright...");
 
         let playwright_bin = if cfg!(target_os = "windows") {
-            "node_modules\\.bin\\playwright.cmd"
+            Path::new(&project_path)
+                .join("node_modules")
+                .join(".bin")
+                .join("playwright.cmd")
         } else {
-            "./node_modules/.bin/playwright"
+            Path::new(&project_path)
+                .join("node_modules")
+                .join(".bin")
+                .join("playwright")
         };
-        let mut pw_proc = Command::new(playwright_bin);
+        let mut pw_proc = Command::new(&playwright_bin);
         pw_proc.arg("install").current_dir(&project_path);
 
         #[cfg(target_os = "windows")]
@@ -449,14 +455,32 @@ fn run_playwright_tests(
     }
 
     let playwright_bin = if cfg!(target_os = "windows") {
-        std::path::Path::new("node_modules")
+        project_path_buf
+            .join("node_modules")
             .join(".bin")
             .join("playwright.cmd")
     } else {
-        std::path::Path::new("node_modules")
+        project_path_buf
+            .join("node_modules")
             .join(".bin")
             .join("playwright")
     };
+
+    if !playwright_bin.exists() {
+        return Err(
+            "No se encontró el binario de Playwright. Ejecuta la reparación de entorno."
+                .to_string(),
+        );
+    }
+
+    let _ = window.emit(
+        "test-output",
+        format!("▶ Playwright bin: {}", playwright_bin.display()),
+    );
+    let _ = window.emit(
+        "test-output",
+        format!("▶ Proyecto: {}", project_path_buf.display()),
+    );
 
     {
         let mut guard = state.current_project_path.lock().unwrap();
@@ -518,6 +542,17 @@ fn run_playwright_tests(
                 let reader = std::io::BufReader::new(stdout);
                 for line in std::io::BufRead::lines(reader).flatten() {
                     let _ = win_out.emit("test-output", line);
+                }
+            }
+        });
+
+        let stderr = child.stderr.take();
+        let win_err = window_clone.clone();
+        std::thread::spawn(move || {
+            if let Some(stderr) = stderr {
+                let reader = std::io::BufReader::new(stderr);
+                for line in std::io::BufRead::lines(reader).flatten() {
+                    let _ = win_err.emit("test-output", format!("[stderr] {}", line));
                 }
             }
         });
