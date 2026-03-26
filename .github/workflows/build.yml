@@ -22,18 +22,53 @@ jobs:
 
       - name: Build Tauri App
         run: npm run tauri build
-        
-      - name: Guardar binarios Windows
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: src-tauri/target/release/bundle/**/*
+
+      # Decodificar certificado
+      - name: Preparar certificado
+        run: |
+          echo "${{ secrets.WINDOWS_CERTIFICATE }}" > cert.txt
+          certutil -decode cert.txt cert.pfx
+
+      # Firmar .exe (Windows)
+      - name: Firmar ejecutable
+        run: |
+          signtool sign /f cert.pfx /p "${{ secrets.WINDOWS_CERT_PASSWORD }}" /tr http://timestamp.digicert.com /td sha256 /fd sha256 src-tauri\target\release\bundle\**\*.exe
+
+      # Firma Tauri (para updater)
+      - name: Firmar con Tauri
+        run: |
+          npx tauri signer sign ^
+            --private-key "${{ secrets.TAURI_PRIVATE_KEY }}" ^
+            --password "${{ secrets.TAURI_KEY_PASSWORD }}" ^
+            --artifact-path src-tauri/target/release/bundle/**/*.exe ^
+            --output signature.txt
+
+      # Generar update.json
+      - name: Generar update.json
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          SIG=$(cat signature.txt)
+          echo "{
+            \"version\": \"$VERSION\",
+            \"notes\": \"Auto release\",
+            \"pub_date\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\",
+            \"platforms\": {
+              \"windows-x86_64\": {
+                \"signature\": \"$SIG\",
+                \"url\": \"https://github.com/${{ github.repository }}/releases/download/$VERSION/QA-Automation-Suite-$VERSION-setup.exe\"
+              }
+            }
+          }" > update.json
+
+      # Subir binarios
       - name: Subir .exe al release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             src-tauri/target/release/bundle/**/*.exe
             src-tauri/target/release/bundle/**/*.msi
+            update.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -55,12 +90,6 @@ jobs:
       - name: Build Tauri App
         run: npm run tauri build
 
-      - name: Guardar binarios macOS
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build
-          path: src-tauri/target/release/bundle/**/*
-      
       - name: Subir .dmg al release
         uses: softprops/action-gh-release@v1
         with:
