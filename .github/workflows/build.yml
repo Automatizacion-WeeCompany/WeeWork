@@ -40,7 +40,7 @@ jobs:
           echo "Archivo encontrado: $FILE"
 
           if [ -z "$FILE" ]; then
-            echo "❌ No se encontró el .exe"
+            echo "❌ No se encontró el .exe de la prueba"
             exit 1
           fi
 
