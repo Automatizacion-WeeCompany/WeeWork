@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-capability.json",
   "identifier": "main-capability",
-  "description": "Capacidades para QA Suite (Windows/macOS)",
+  "description": "Capacidades para WeeBot (Windows/macOS)",
   "windows": [
     "main"
   ],

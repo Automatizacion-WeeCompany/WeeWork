@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { open } from '@tauri-apps/plugin-shell';
+import { confirm as confirmDialog } from '@tauri-apps/plugin-dialog';
 import logoW from "../../src-tauri/icons/W.png";
 
 type Project = {
@@ -86,8 +87,11 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
   const handleUpdate = async () => {
     if (!updateAvailable) return;
     
-    const confirm = window.confirm(`Nueva versión v${updateAvailable.version} disponible. ¿Deseas actualizar ahora?`);
-    if (!confirm) return;
+    const shouldUpdate = await confirmDialog(
+      `Nueva versión v${updateAvailable.version} disponible. ¿Deseas actualizar ahora?`,
+      { title: "Actualización disponible", kind: "info" }
+    );
+    if (!shouldUpdate) return;
 
     setIsUpdating(true);
     try {
@@ -135,11 +139,12 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
     // Esto evita que al hacer clic en borrar, se seleccione el proyecto (se abra)
     e.stopPropagation(); 
   
-    const confirm = window.confirm(
-    `⚠️ ¡ADVERTENCIA!\n\nEstás a punto de eliminar TODO el proyecto "${projectName}" de tu equipo.\n\nSi decides continuar, se borrará todo y tendrías que clonarlo de nuevo si lo necesitas.\n\n¿Estás seguro de que deseas eliminarlo?`
+    const shouldDelete = await confirmDialog(
+      `⚠️ ¡ADVERTENCIA!\n\nEstás a punto de eliminar TODO el proyecto "${projectName}" de tu equipo.\n\nSi decides continuar, se borrará todo y tendrías que clonarlo de nuevo si lo necesitas.\n\n¿Estás seguro de que deseas eliminarlo?`,
+      { title: "WeeBot", kind: "warning" }
     );
   
-    if (!confirm) return;
+    if (!shouldDelete) return;
 
     try {
       await invoke("delete_project", { projectName, role: userRole });
@@ -196,7 +201,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
               {/* CA01 — Info Versión */}
               <section style={{ marginBottom: "20px", backgroundColor: "var(--panel-bg-strong)", padding: "15px", borderRadius: "8px", border: "1px solid var(--panel-border)" }}>
                 <h4 style={{ margin: "0 0 10px 0" }}>Información de la Herramienta</h4>
-                <p style={{ margin: "5px 0" }}><strong>QA Automation Tool</strong></p>
+                <p style={{ margin: "5px 0" }}><strong>WeeBot</strong></p>
                 <p style={{ margin: "5px 0", opacity: 0.8 }}>Versión: {appVersion}</p>
                 <p style={{ margin: "5px 0", opacity: 0.8 }}>Build: {buildDate}</p>
               </section>
@@ -251,8 +256,8 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
         {showDocumentation && (
           <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.8)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px" }}>
             <div style={{backgroundColor: "var(--panel-bg)", padding: "30px", borderRadius: "15px", maxWidth: "600px", border: "1px solid var(--panel-border)"}}>
-              <h3 style={{ color: "#006ab3", marginTop: 0 }}>Documentacion de los proyectos</h3>
-              <p style={{ color: "var(--muted-text)", marginBottom: "25px" }}>La documentacion proporcionada aqui es responsabilidad del equipo QA y el equipo de Documentacion</p>
+              <h3 style={{ color: "#006ab3", marginTop: 0 }}>Documentación de los proyectos</h3>
+              <p style={{ color: "var(--muted-text)", marginBottom: "25px" }}>La documentación proporcionada aquí es responsabilidad del equipo QA y el equipo de Documentación</p>
               <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                 <button
                   onClick={() => handleOpenDocs("https://docs.google.com/spreadsheets/d/1OfhO6OAOXXjvbnaXQeWJ7t0jaVnnKlmJ/edit?usp=sharing&ouid=100188614620631772642&rtpof=true&sd=true")}
@@ -264,7 +269,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
                   onClick={() => handleOpenDocs("https://drive.google.com/drive/folders/1LouYr5JCTszzbt-uZAoTJbjGcPoqtFOW?usp=sharing")}
                   className="btn btn-secondary btn-block"
                 >
-                  Manuales de proyectos
+                  Manuales de Proyectos
                 </button>
               <button className="btn btn-primary btn-block" onClick={() => setShowDocumentation(false)} style={{ marginTop: "20px" }}>Aceptar</button>
               </div>
@@ -284,7 +289,14 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
         {/* --- SECCIÓN CLONAR --- */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap", alignItems: "center", backgroundColor: "var(--panel-bg)", padding: "20px", borderRadius: "12px", border: "1px solid var(--panel-border)" }}> 
           <input placeholder="URL de Git (HTTPS)" value={urlState} onChange={e => setRepoUrl(e.target.value)} style={{ flex: 2, padding: "12px", borderRadius: "8px" }} disabled={loading} />
-          <input placeholder="Nombre del Proyecto" value={nameState} onChange={e => setNewName(e.target.value)} style={{ flex: 1, padding: "12px", borderRadius: "8px" }} disabled={loading} />
+          <input
+            placeholder="Nombre del Proyecto"
+            value={nameState}
+            onChange={e => setNewName(e.target.value.slice(0, 30))}
+            maxLength={30}
+            style={{ flex: 1, padding: "12px", borderRadius: "8px" }}
+            disabled={loading}
+          />
           <button className="btn btn-primary" onClick={handleClone} disabled={loading || userRole !== "admin"}>
             {loading ? "Procesando..." : "Agregar / Actualizar proyecto"}
           </button>
@@ -331,7 +343,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
         </div>
         
         <div>
-          QA Automation Suite — <strong style={{ color: "#006ab3" }}>v{appVersion}</strong> 
+          WeeBot — <strong style={{ color: "#006ab3" }}>v{appVersion}</strong> 
         </div>
 
         <button 
