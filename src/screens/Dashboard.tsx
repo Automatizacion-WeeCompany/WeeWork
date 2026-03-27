@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { open } from '@tauri-apps/plugin-shell';
+import logoW from "../../src-tauri/icons/W.png";
 
 type Project = {
   name: string;
@@ -169,17 +170,17 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
     }
   }
   return (
-    <div style={{ padding: "20px", display: "flex", flexDirection: "column", minHeight: "95vh", color: "white" }}>
+    <div className="screen">
       
       {/* CA04 — Notificación de Nueva Versión (Banner) */}
       {updateAvailable && (
         <div style={{
-          backgroundColor: "#ff9800", color: "black", padding: "10px 20px", borderRadius: "8px",
+          backgroundColor: "#ff9800", color: "#111", padding: "10px 20px", borderRadius: "8px",
           marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center",
           fontWeight: "bold", border: "1px solid #e68a00"
         }}>
           <span>Existe una nueva versión disponible: v{updateAvailable.version}</span>
-          <button onClick={() => setShowSettings(true)} style={{ backgroundColor: "black", color: "white", border: "none", padding: "5px 15px", borderRadius: "5px", cursor: "pointer" }}>
+          <button className="btn btn-dark btn-sm" onClick={() => setShowSettings(true)}>
             Actualizar ahora
           </button>
         </div>
@@ -189,11 +190,11 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
         {/* --- MODAL CONFIGURACIÓN / ACERCA DE (CA01, CA02, CA03, CA08) --- */}
         {showSettings && (
           <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.85)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1100 }}>
-            <div style={{ backgroundColor: "#1e1e1e", padding: "30px", borderRadius: "15px", maxWidth: "600px", width: "90%", border: "1px solid #006ab3" }}>
+            <div style={{ backgroundColor: "var(--panel-bg)", padding: "30px", borderRadius: "15px", maxWidth: "600px", width: "90%", border: "1px solid var(--panel-border)" }}>
               <h2 style={{ color: "#006ab3", marginTop: 0 }}>Configuración del Sistema</h2>
               
               {/* CA01 — Info Versión */}
-              <section style={{ marginBottom: "20px", backgroundColor: "#2d2d2d", padding: "15px", borderRadius: "8px" }}>
+              <section style={{ marginBottom: "20px", backgroundColor: "var(--panel-bg-strong)", padding: "15px", borderRadius: "8px", border: "1px solid var(--panel-border)" }}>
                 <h4 style={{ margin: "0 0 10px 0" }}>Información de la Herramienta</h4>
                 <p style={{ margin: "5px 0" }}><strong>QA Automation Tool</strong></p>
                 <p style={{ margin: "5px 0", opacity: 0.8 }}>Versión: {appVersion}</p>
@@ -202,11 +203,11 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
 
               {/* CA02 — Changelog */}
               <section style={{ marginBottom: "20px" }}>
-                <button onClick={openChangelog} style={{ background: "none", border: "none", color: "#006ab3", cursor: "pointer", textDecoration: "underline", padding: 0, marginBottom: "10px" }}>
+                <button className="btn btn-link" onClick={openChangelog} style={{ marginBottom: "10px" }}>
                   Consultar Historial de Cambios (Changelog)
                 </button>
                 {changelog && (
-                  <pre style={{ backgroundColor: "#000", padding: "10px", borderRadius: "5px", fontSize: "12px", maxHeight: "150px", overflowY: "auto", border: "1px solid #333" }}>
+                  <pre style={{ backgroundColor: "#000", padding: "10px", borderRadius: "5px", fontSize: "12px", maxHeight: "150px", overflowY: "auto", border: "1px solid var(--panel-border)" }}>
                     {changelog}
                   </pre>
                 )}
@@ -217,9 +218,8 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
                 <button 
                   onClick={updateAvailable ? handleUpdate : () => checkForUpdates(true)}
                   disabled={isUpdating || isChecking}
-                  style={{ flex: 1, padding: "12px", backgroundColor: updateAvailable ? "#4caf50" : "#006ab3", color: "white", 
-                    border: "none", borderRadius: "8px", fontWeight: "bold", cursor: (isUpdating || isChecking) ? "not-allowed" : "pointer",
-                    opacity: (isUpdating || isChecking) ? 0.7 : 1}}
+                  className={`btn ${updateAvailable ? "btn-success" : "btn-primary"}`}
+                  style={{ flex: 1 }}
                 >
                   {isUpdating ? "Instalando..." 
                   : isChecking
@@ -228,7 +228,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
                   ? `Instalar v${updateAvailable.version}`
                   : "Buscar actualizaciones"}
                 </button>
-                <button onClick={() => setShowSettings(false)} style={{ padding: "12px", backgroundColor: "#444", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>Cerrar</button>
+                <button className="btn btn-secondary" onClick={() => setShowSettings(false)}>Cerrar</button>
               </section>
             </div>
           </div>
@@ -237,36 +237,36 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
         {/* --- MODAL GUÍA GIT --- */}
         {showGuide && (
           <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.8)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px" }}>
-            <div style={{ backgroundColor: "#1e1e1e", padding: "30px", borderRadius: "15px", maxWidth: "600px", border: "1px solid #006ab3" }}>
-              <h3 style={{ color: "#006ab3", marginTop: 0 }}>🔑 Guía de Acceso a Git</h3>
+            <div style={{ backgroundColor: "var(--panel-bg)", padding: "30px", borderRadius: "15px", maxWidth: "600px", border: "1px solid var(--panel-border)" }}>
+              <h3 style={{ color: "#006ab3", marginTop: 0 }}>Guía de Acceso a Git</h3>
               <p>Si el clonado falla, intenta usar un Personal Access Token:</p>
-              <code style={{ fontSize: "12px", wordBreak: "break-all", color: "#61dafb", backgroundColor: "#000", padding: "10px", display: "block", borderRadius: "5px" }}>
+              <code style={{ fontSize: "12px", wordBreak: "break-all", color: "#61dafb", backgroundColor: "#000", padding: "10px", display: "block", borderRadius: "5px", border: "1px solid var(--panel-border)" }}>
                 https://USUARIO:TOKEN@github.com/WeeCompany/repo.git
               </code>
-              <button onClick={() => setShowGuide(false)} style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: "#006ab3", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>Entendido</button>
+              <button className="btn btn-primary btn-block" onClick={() => setShowGuide(false)} style={{ marginTop: "20px" }}>Entendido</button>
             </div>
           </div>
         )}
         {/* --- MODAL DOCUMENTACION Y MATRICES --- */}
         {showDocumentation && (
           <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.8)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px" }}>
-            <div style={{backgroundColor: "#1e1e1e", padding: "30px", borderRadius: "15px", maxWidth: "600px", border: "1px solid #006ab3"}}>
+            <div style={{backgroundColor: "var(--panel-bg)", padding: "30px", borderRadius: "15px", maxWidth: "600px", border: "1px solid var(--panel-border)"}}>
               <h3 style={{ color: "#006ab3", marginTop: 0 }}>Documentacion de los proyectos</h3>
-              <p style={{ color: "#ccc", marginBottom: "25px" }}>La documentacion proporcionada aqui es responsabilidad del equipo QA y el equipo de Documentacion</p>
+              <p style={{ color: "var(--muted-text)", marginBottom: "25px" }}>La documentacion proporcionada aqui es responsabilidad del equipo QA y el equipo de Documentacion</p>
               <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                 <button
                   onClick={() => handleOpenDocs("https://docs.google.com/spreadsheets/d/1OfhO6OAOXXjvbnaXQeWJ7t0jaVnnKlmJ/edit?usp=sharing&ouid=100188614620631772642&rtpof=true&sd=true")}
-                  style={{ padding: "12px", backgroundColor: "#2e7d32", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
+                  className="btn btn-secondary btn-block"
                 >
                   Abrir Matriz Gasto Médico Mayor Banorte
                 </button>
                 <button
                   onClick={() => handleOpenDocs("https://drive.google.com/drive/folders/1LouYr5JCTszzbt-uZAoTJbjGcPoqtFOW?usp=sharing")}
-                  style={{ padding: "12px", backgroundColor: "#2e7d32", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
+                  className="btn btn-secondary btn-block"
                 >
                   Manuales de proyectos
                 </button>
-              <button onClick={() => setShowDocumentation(false)} style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: "#006ab3", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>Aceptar</button>
+              <button className="btn btn-primary btn-block" onClick={() => setShowDocumentation(false)} style={{ marginTop: "20px" }}>Aceptar</button>
               </div>
             </div>
           </div>    
@@ -274,20 +274,29 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
 
         {/* --- HEADER --- */}
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
-          <h2 style={{ margin: 0 }}>Proyectos WeeCompany</h2>
-          <button onClick={onGoToHistory} style={{ padding: "10px 20px", backgroundColor: "#006ab3", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>📜 Historial</button>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <img src={logoW} alt="WeeBot" style={{ width: "50px", height: "50px", objectFit: "contain" }} />
+            <h2 style={{ margin: 0 }}>Proyectos WeeCompany</h2>
+          </div>
+          <button className="btn btn-primary" onClick={onGoToHistory}>Historial</button>
         </header>
 
         {/* --- SECCIÓN CLONAR --- */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "40px", flexWrap: "wrap", alignItems: "center", backgroundColor: "#1e1e1e", padding: "20px", borderRadius: "12px" }}> 
-          <input placeholder="URL de Git (HTTPS)" value={urlState} onChange={e => setRepoUrl(e.target.value)} style={{ flex: 2, padding: "12px", borderRadius: "8px", border: "1px solid #333", backgroundColor: "#000", color: "white" }} />
-          <input placeholder="Nombre del Proyecto" value={nameState} onChange={e => setNewName(e.target.value)} style={{ flex: 1, padding: "12px", borderRadius: "8px", border: "1px solid #333", backgroundColor: "#000", color: "white" }} />
-          <button onClick={handleClone} disabled={loading || userRole !== "admin"} style={{ padding: "12px 25px", backgroundColor: (loading || userRole !== "admin") ? "#555" : "#006ab3", color: "white", border: "none", borderRadius: "8px", cursor: (loading || userRole !== "admin") ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap", alignItems: "center", backgroundColor: "var(--panel-bg)", padding: "20px", borderRadius: "12px", border: "1px solid var(--panel-border)" }}> 
+          <input placeholder="URL de Git (HTTPS)" value={urlState} onChange={e => setRepoUrl(e.target.value)} style={{ flex: 2, padding: "12px", borderRadius: "8px" }} disabled={loading} />
+          <input placeholder="Nombre del Proyecto" value={nameState} onChange={e => setNewName(e.target.value)} style={{ flex: 1, padding: "12px", borderRadius: "8px" }} disabled={loading} />
+          <button className="btn btn-primary" onClick={handleClone} disabled={loading || userRole !== "admin"}>
             {loading ? "Procesando..." : "Agregar / Actualizar proyecto"}
           </button>
-          <button onClick={() => setShowGuide(true)} style={{ padding: "12px", backgroundColor: "transparent", color: "#006ab3", border: "1px solid #006ab3", borderRadius: "8px", cursor: "pointer" }}>❓</button>
-          <button onClick={() => setShowDocumentation(true)} style={{ padding: "12px", backgroundColor: "transparent", color: "#006ab3", border: "1px solid #006ab3", borderRadius: "8px", cursor: "pointer" }}>Documentacion</button>
+          <button className="btn btn-outline btn-icon" onClick={() => setShowGuide(true)}>❓</button>
+          <button className="btn btn-outline" onClick={() => setShowDocumentation(true)}>Documentacion</button>
         </div>
+        {loading && (
+          <div className="loading-row" role="status" aria-live="polite">
+            <span className="spinner" aria-hidden="true" />
+            Clonando proyecto... esto puede tardar unos minutos.
+          </div>
+        )}
 
         {/* --- GRID DE PROYECTOS --- */}
         <div style={{ display: "grid", gap: "15px", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
@@ -302,14 +311,8 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
                   <button
                     onClick={(e) => handleDeleteProject(e, p.name)}
                     title="Eliminar proyecto"
-                    style={{
-                      backgroundColor: "#ff4d4d", color: "white", border: "none", borderRadius: "5px",
-                      padding: "5px 10px", cursor: "pointer", fontWeight: "bold", fontSize: "14px",
-                      boxShadow: "0 2px 5px rgba(0,0,0,0.3)"
-                    }}
+                    className="btn btn-danger btn-xs"
                     disabled={userRole !== "admin"}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#ff1a1a"}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#ff4d4d"}
                     >
                       Eliminar
                     </button>
@@ -321,7 +324,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
       </div>
 
       {/* --- FOOTER (CA01) --- */}
-      <footer style={{ marginTop: "40px", padding: "15px 0", borderTop: "1px solid #333", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#888", fontSize: "12px" }}>
+      <footer style={{ marginTop: "40px", padding: "15px 0", borderTop: "1px solid var(--panel-border)", display: "flex", justifyContent: "space-between", alignItems: "center", color: "var(--muted-text)", fontSize: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ color: "#4caf50" }}>●</span> 
           <strong>Estatus:</strong> Sistema Operativo
@@ -333,7 +336,8 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
 
         <button 
           onClick={() => setShowSettings(true)} 
-          style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", gap: "5px" }}
+          className="btn btn-link"
+          style={{ fontSize: "12px" }}
         >
           Acerca de
         </button>

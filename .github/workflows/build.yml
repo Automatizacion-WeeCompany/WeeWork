@@ -3,3 +3,52 @@ name: Build Tauri App
 on:
   release:
     types: [created]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Build Tauri App
+        run: npm run tauri build
+        
+      - name: Guardar binarios Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: src-tauri/target/release/bundle/**/*
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Build Tauri App
+        run: npm run tauri build
+
+      - name: Guardar binarios macOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: src-tauri/target/release/bundle/**/*

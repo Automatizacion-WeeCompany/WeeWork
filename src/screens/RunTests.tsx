@@ -189,20 +189,20 @@ export default function RunTests({ project, userRole, onExecute, logs, isRunning
     <div style={{ padding: "10px" }}>
       {/* --- UI DE CANCELACIÓN --- */}
       {wasCancelled && (
-        <div style={{ background: "rgba(244, 67, 54, 0.15)", border: "1px solid #f44336", padding: "20px", borderRadius: "8px", marginBottom: "20px", textAlign: "center" }}>
+        <div style={{ background: "rgba(244, 67, 54, 0.15)", border: "1px solid rgba(244, 67, 54, 0.6)", padding: "20px", borderRadius: "8px", marginBottom: "20px", textAlign: "center" }}>
           <h3 style={{ color: "#f44336", margin: "0 0 10px 0" }}>⛔ Ejecución Detenida</h3>
           <p style={{ color: "#eee", marginBottom: "15px" }}>La prueba se canceló correctamente.</p>
-          <button onClick={handleResetAfterCancel} style={{ padding: "10px 25px", background: "#2e7d32", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}>Aceptar</button>
+          <button className="btn btn-success" onClick={handleResetAfterCancel}>Aceptar</button>
         </div>
       )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
-        <button onClick={onBack} disabled={isRunning && !wasCancelled}>⬅️ Volver</button>
+        <button className="btn btn-ghost btn-sm" onClick={onBack} disabled={isRunning && !wasCancelled}>Volver</button>
         {userRole === "admin" && (
           <button 
             onClick={handleReplaceExcel}
             disabled={isRunning || isUploading}
-            style={{ padding: "8px 15px", background: "#006ab3", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
+            className="btn btn-primary btn-sm"
           >
             {isUploading ? "⏳ Subiendo..." : "Cargar Nuevo Excel"}
           </button>
@@ -210,7 +210,7 @@ export default function RunTests({ project, userRole, onExecute, logs, isRunning
       </div>
       
       {/* --- CARD DE ESTADO DE SALUD --- */}
-      <div style={{ background: "#1e1e1e", color: "white", padding: "15px", borderRadius: "8px", marginBottom: "20px", border: health?.project_ready ? "1px solid #2e7d32" : "1px solid #d32f2f", opacity: isRunning ? 0.6 : 1 }}>
+      <div style={{ background: "var(--panel-bg)", color: "var(--text-color)", padding: "15px", borderRadius: "8px", marginBottom: "20px", border: health?.project_ready ? "1px solid rgba(46,125,50,0.7)" : "1px solid rgba(211,47,47,0.7)", opacity: isRunning ? 0.6 : 1 }}>
         <h4 style={{ margin: "0 0 10px 0" }}>🛠 Validación del Proyecto</h4>
         <div style={{ display: "flex", gap: "15px", fontSize: "0.85rem", marginBottom: "10px" }}>
           <span style={{ color: health?.node_installed ? "#4caf50" : "#f44336" }}>{health?.node_installed ? "● Node.js OK" : "○ Node.js no encontrado"}</span>
@@ -218,22 +218,22 @@ export default function RunTests({ project, userRole, onExecute, logs, isRunning
           <span style={{ color: health?.playwright_browsers_installed ? "#4caf50" : "#f44336" }}>{health?.playwright_browsers_installed ? "● Navegadores OK" : "○ Faltan Navegadores"}</span>
         </div>
         {!health?.project_ready && !isRepairing && (
-          <button onClick={handleRepair} style={{ background: "#d32f2f", color: "white", border: "none", padding: "8px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", marginTop: "5px" }}>🔧 Reparar Entorno</button>
+          <button className="btn btn-danger btn-sm" onClick={handleRepair}>🔧 Reparar Entorno</button>
         )}
         {isRepairing && <div style={{ color: "#ff9800", fontWeight: "bold", marginTop: "10px" }}>⏳ {repairMessage}...</div>}
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <h2>Flujos: {project?.name}</h2>
-        <span style={{ color: "#888", fontSize: "0.8rem" }}>Rol: <b>{userRole ? userRole.toUpperCase() : "SIN ROL"}</b></span>
+        <span style={{ color: "var(--muted-text)", fontSize: "0.8rem" }}>Rol: <b>{userRole ? userRole.toUpperCase() : "SIN ROL"}</b></span>
       </div>
 
-      <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid #444", padding: "10px", borderRadius: "5px", background: "#1a1a1a" }}>
+      <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid var(--panel-border)", padding: "10px", borderRadius: "5px", background: "var(--panel-bg)" }}>
         {suites.length === 0 ? (
-          <p style={{ color: "#888" }}>No se encontraron archivos de prueba.</p>
+          <p style={{ color: "var(--muted-text)" }}>No se encontraron archivos de prueba.</p>
         ) : suites.map((s) => (
           <div key={s.suite} style={{ marginBottom: "15px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #444", paddingBottom: "5px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--panel-border)", paddingBottom: "5px" }}>
                 <h3 style={{ fontSize: "1rem", margin: 0 }}>{s.suite}</h3>
                 <span style={{ color: "#00d4ff", fontSize: "0.75rem", cursor: "help" }}>ℹ️ Flujo desde Excel</span>
             </div>
@@ -266,7 +266,7 @@ export default function RunTests({ project, userRole, onExecute, logs, isRunning
 
       <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: "10px" }}>
         <label htmlFor="browser-select"><b>Navegador:</b></label>
-        <select id="browser-select" value={browser} onChange={(e) => setBrowser(e.target.value)} style={{ padding: "5px", borderRadius: "4px", background: "#333", color: "white", border: "1px solid #555" }}>
+        <select id="browser-select" value={browser} onChange={(e) => setBrowser(e.target.value)} style={{ padding: "5px", borderRadius: "4px", background: "var(--input-bg)", color: "var(--text-color)", border: "1px solid var(--input-border)" }}>
           <option value="Chromium">Chrome</option>
           <option value="Firefox">Firefox</option>
         </select>
@@ -275,7 +275,7 @@ export default function RunTests({ project, userRole, onExecute, logs, isRunning
       <div style={{ marginTop: 20 }}>
         {!isRunning && !wasCancelled && (
             <button 
-              style={{ padding: "10px 25px", fontSize: "1rem", cursor: !health?.project_ready ? "not-allowed" : "pointer", background: !health?.project_ready ? "#555" : "#2e7d32", color: "white", border: "none", borderRadius: "5px" }} 
+              className="btn btn-success"
               disabled={!health?.project_ready}
               onClick={handleExecute}
             >
@@ -286,12 +286,12 @@ export default function RunTests({ project, userRole, onExecute, logs, isRunning
         {isRunning && !wasCancelled && (
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
              <span style={{ color: "#4caf50", fontWeight: "bold" }}>🚀 Ejecutando...</span>
-             <button style={{ padding: "10px 20px", background: "#d32f2f", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }} onClick={handleInternalCancel}>⛔ Cancelar</button>
+             <button className="btn btn-danger" onClick={handleInternalCancel}>⛔ Cancelar</button>
           </div>
         )}
       </div>
 
-      <div style={{ marginTop: 20, background: "#000", color: "#0f0", padding: "15px", height: "180px", overflowY: "auto", fontFamily: "monospace", fontSize: "0.85rem", borderRadius: "5px", border: "1px solid #333" }}>
+      <div style={{ marginTop: 20, background: "var(--panel-bg-strong)", color: "#aaffaa", padding: "15px", height: "180px", overflowY: "auto", fontFamily: "monospace", fontSize: "0.85rem", borderRadius: "5px", border: "1px solid var(--panel-border)" }}>
         <pre style={{ margin: 0 }}>{logs || "> Esperando ejecución..."}</pre>
       </div>
     </div>

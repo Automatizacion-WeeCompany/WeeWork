@@ -4,7 +4,7 @@
   height: calc(100vh - 40px); /* Ocupa todo el alto disponible */
   padding: 20px;
   box-sizing: border-box;
-  color: #e0e0e0;
+  color: var(--text-color);
 }
 
 .history-header {
@@ -35,10 +35,10 @@
 .table-header th {
   position: sticky;
   top: 0;
-  background: #2d2d2d;
+  background: var(--panel-bg-strong);
   padding: 15px;
   z-index: 10;
-  border-bottom: 2px solid #444;
+  border-bottom: 2px solid var(--panel-border);
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 1px;
@@ -46,28 +46,28 @@
 
 .text-left {
   text-align: left;
-  color: #fff;
+  color: var(--text-color);
 }
 
 .text-center {
   text-align: center;
-  color: #fff;
+  color: var(--text-color);
 }
 
 .text-right {
   text-align: right;
-  color: #fff;
+  color: var(--text-color);
 }
 
 .text-pass {
   color: #1a1a1a;
 }
 .table-row {
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--panel-border);
   transition: background 0.2s;
 }
 .table-row:hover {
-  background: #252525;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .table-cell {
@@ -75,7 +75,7 @@
   font-size: 0.9rem;
 }
 
-.cell-date { width: 180px; color: #aaa; }
+.cell-date { width: 180px; color: var(--muted-text); }
 
 .cell-project { min-width: 250px; }
 
@@ -99,7 +99,7 @@
 /* Subtexto de nombres de tests debajo del proyecto */
 .test-names-subtext {
   font-size: 0.75rem;
-  color: #d8d5d5;
+  color: var(--muted-text);
   margin-top: 4px;
   max-width: 300px;
   white-space: nowrap;
@@ -110,7 +110,7 @@
 /* Contenedor de la barra (el fondo gris/rojo) */
 .progress-container {
   width: 100%;
-  background-color: #3d1a1a; /* Fondo rojo oscuro para fallos */
+  background-color: rgba(244, 67, 54, 0.2); /* Fondo rojo suave */
   border-radius: 4px;
   height: 8px;
   overflow: hidden;
@@ -128,7 +128,7 @@
   font-size: 0.7rem;
   text-align: center;
   margin-top: 2px;
-  color: #aaa;
+  color: var(--muted-text);
 }
 
 /* --- BARRA DE FILTROS --- */
@@ -136,11 +136,12 @@
   display: flex;
   gap: 15px;
   margin-bottom: 20px;
-  background: #252525;
+  background: var(--panel-bg);
   padding: 15px;
   border-radius: 8px;
   align-items: flex-end;
   flex-wrap: wrap;
+  border: 1px solid var(--panel-border);
 }
 
 .filter-group {
@@ -151,14 +152,14 @@
 
 .filter-group label {
   font-size: 0.9rem;
-  color: #aaa;
+  color: var(--muted-text);
 }
 
 /* Inputs generales */
 .filter-input {
-  background-color: #1a1a1a;
-  border: 1px solid #444;
-  color: white;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-color);
   padding: 8px 12px;
   border-radius: 6px;
   outline: none;
@@ -167,7 +168,7 @@
 }
 
 .filter-input:focus {
-  border-color: #646cff;
+  border-color: var(--btn-outline);
 }
 
 .search-input {
@@ -198,9 +199,9 @@
 .table-container {
   flex-grow: 1; /* Hace que la tabla ocupe el espacio restante */
   overflow: auto; /* Scroll si la tabla es muy grande */
-  background: #1e1e1e;
+  background: var(--panel-bg);
   border-radius: 8px;
-  border: 1px solid #333;
+  border: 1px solid var(--panel-border);
   box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
@@ -317,8 +318,8 @@
 }
 
 .custom-tooltip-chart {
-  background-color: #1e1e1e;
-  border: 1px solid #444;
+  background-color: var(--panel-bg-strong);
+  border: 1px solid var(--panel-border);
   padding: 12px;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.5);
@@ -330,17 +331,18 @@
 }
 .tooltip-date {
   font-size: 0.85em;
-  color: #aaa;
+  color: var(--muted-text);
   margin-bottom: 8px;
 }
 .chart-wrapper {
-  background: #252525;
+  background: var(--panel-bg);
   padding: 20px;
   border-radius: 12px;
   margin-top: 20px;
+  border: 1px solid var(--panel-border);
 }
 .chart-title {
   text-align: center;
-  color: #eee;
+  color: var(--text-color);
   margin-bottom: 20px;
 }
