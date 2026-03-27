@@ -30,16 +30,24 @@ jobs:
       - name: Build Tauri App (Windows)
         run: npm run tauri build
 
-      # 🧠 Obtener nombre del .exe generado
+      # 🧠 Obtener .exe correctamente (FIX REAL)
       - name: Obtener instalador
         id: get_exe
         shell: bash
         run: |
-          FILE=$(ls src-tauri/target/release/bundle/**/*.exe | head -n 1)
+          FILE=$(find src-tauri/target/release/bundle -name "*.exe" | head -n 1)
+
+          echo "Archivo encontrado: $FILE"
+
+          if [ -z "$FILE" ]; then
+            echo "❌ No se encontró el .exe"
+            exit 1
+          fi
+
           echo "exe_path=$FILE" >> $GITHUB_OUTPUT
           echo "exe_name=$(basename $FILE)" >> $GITHUB_OUTPUT
 
-      # 🔐 Firmar correctamente (en bash para evitar errores)
+      # 🔐 Firmar correctamente (con validación)
       - name: Firmar instalador
         id: sign
         shell: bash
@@ -52,15 +60,25 @@ jobs:
             --artifact-path "$FILE" \
             --output signature.txt
 
+          echo "Contenido de la firma:"
+          cat signature.txt
+
+          if [ ! -s signature.txt ]; then
+            echo "❌ Firma vacía"
+            exit 1
+          fi
+
           echo "signature=$(cat signature.txt)" >> $GITHUB_OUTPUT
 
-      # 🧠 Generar update.json con firma REAL
+      # 🧠 Generar update.json dinámico
       - name: Generar update.json
         shell: bash
         run: |
           VERSION=${GITHUB_REF_NAME}
           EXE_NAME=${{ steps.get_exe.outputs.exe_name }}
           SIG=${{ steps.sign.outputs.signature }}
+
+          echo "Generando update.json para versión $VERSION"
 
           echo "{
             \"version\": \"$VERSION\",
@@ -74,7 +92,10 @@ jobs:
             }
           }" > update.json
 
-      # 📦 Subir artefactos
+          echo "Contenido de update.json:"
+          cat update.json
+
+      # 📦 Subir artefactos al release
       - name: Subir Windows al release
         uses: softprops/action-gh-release@v1
         with:
