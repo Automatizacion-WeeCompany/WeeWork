@@ -55,14 +55,15 @@ export default function Logs({ config, onFinish }: Props) {
 
       <div
         style={{
-          background: "#111",
-          color: "#0f0",
+          background: "var(--panel-bg-strong)",
+          color: "#aaffaa",
           padding: 12,
           minHeight: 300,
           fontFamily: "monospace",
           fontSize: 13,
           overflowY: "auto",
           borderRadius: 4,
+          border: "1px solid var(--panel-border)",
         }}
       >
         {logs.map((line, i) => (
