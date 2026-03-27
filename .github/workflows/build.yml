@@ -30,8 +30,8 @@ jobs:
       - name: Build Tauri App (Windows)
         run: npm run tauri build
 
-      # 🧠 Obtener nombre real del .exe
-      - name: Obtener nombre del instalador
+      # 🧠 Obtener nombre del .exe generado
+      - name: Obtener instalador
         id: get_exe
         shell: bash
         run: |
@@ -39,26 +39,42 @@ jobs:
           echo "exe_path=$FILE" >> $GITHUB_OUTPUT
           echo "exe_name=$(basename $FILE)" >> $GITHUB_OUTPUT
 
-      # 🧠 Generar update.json dinámico
+      # 🔐 Firmar correctamente (en bash para evitar errores)
+      - name: Firmar instalador
+        id: sign
+        shell: bash
+        run: |
+          FILE="${{ steps.get_exe.outputs.exe_path }}"
+
+          npx tauri signer sign \
+            --private-key "$TAURI_PRIVATE_KEY" \
+            --password "$TAURI_KEY_PASSWORD" \
+            --artifact-path "$FILE" \
+            --output signature.txt
+
+          echo "signature=$(cat signature.txt)" >> $GITHUB_OUTPUT
+
+      # 🧠 Generar update.json con firma REAL
       - name: Generar update.json
         shell: bash
         run: |
           VERSION=${GITHUB_REF_NAME}
           EXE_NAME=${{ steps.get_exe.outputs.exe_name }}
+          SIG=${{ steps.sign.outputs.signature }}
 
           echo "{
             \"version\": \"$VERSION\",
-            \"notes\": \"Auto release\",
+            \"notes\": \"Auto update\",
             \"pub_date\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\",
             \"platforms\": {
               \"windows-x86_64\": {
-                \"signature\": \"\",
+                \"signature\": \"$SIG\",
                 \"url\": \"https://github.com/${{ github.repository }}/releases/download/$VERSION/$EXE_NAME\"
               }
             }
           }" > update.json
 
-      # 📦 Subir .exe + update.json
+      # 📦 Subir artefactos
       - name: Subir Windows al release
         uses: softprops/action-gh-release@v1
         with:
@@ -86,7 +102,6 @@ jobs:
       - name: Build Tauri App (macOS)
         run: npm run tauri build
 
-      # 📦 Subir SOLO el .dmg
       - name: Subir DMG al release
         uses: softprops/action-gh-release@v1
         with:
