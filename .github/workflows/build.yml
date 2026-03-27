@@ -54,11 +54,10 @@ jobs:
         run: |
           FILE="${{ steps.get_exe.outputs.exe_path }}"
 
-          npx tauri signer sign \
+          npx tauri signer sign "$FILE" \
             --private-key "$TAURI_PRIVATE_KEY" \
             --password "$TAURI_KEY_PASSWORD" \
-            --artifact-path "$FILE" \
-            --output signature.txt
+            > signature.txt
 
           echo "Contenido de la firma:"
           cat signature.txt
