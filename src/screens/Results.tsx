@@ -36,7 +36,7 @@ export default function Results({ results, onRetry, onOpenReport }: Props) {
   };
 
   return (
-    <div>
+    <div style={{ padding: "20px", background: "var(--panel-bg)", border: "1px solid var(--panel-border)", borderRadius: "12px" }}>
       <h2>Test Summary</h2>
       <p>Total Suites: {results.suites?.length}</p>
 
@@ -85,10 +85,10 @@ export default function Results({ results, onRetry, onOpenReport }: Props) {
 
       <hr />
       
-      <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+      <div style={{ display: "flex", gap: "10px", marginTop: "20px", flexWrap: "wrap" }}>
         <button 
           onClick={onRetry} 
-          style={{ padding: "10px 20px", cursor: "pointer", backgroundColor: "#006ab3", color: "white", border: "none", borderRadius: "5px" }}
+          className="btn btn-primary"
         >
           Ejecutar una nueva prueba
         </button>
@@ -96,7 +96,7 @@ export default function Results({ results, onRetry, onOpenReport }: Props) {
         <button 
           onClick={handleOpenReport} 
           disabled={isOpening}
-          style={{ padding: "10px 20px", cursor: isOpening ? "wait" : "pointer", backgroundColor: "#4caf50", color: "white", border: "none", borderRadius: "5px" }}
+          className="btn btn-success"
         >
           {isOpening ? "Abriendo..." : "Ver Reporte HTML"}
         </button>

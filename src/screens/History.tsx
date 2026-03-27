@@ -168,7 +168,7 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
                   <td className="text-center cell-failed">{rec.failed}</td>
                   <td className="text-right">{rec.duration.toFixed(2)}s</td>
                   <td className="text-center">
-                    <button className="evidence-btn" onClick={() => rec.report_path && openReport(rec.report_path)}>Ver</button>
+                    <button className="btn btn-primary btn-xs" onClick={() => rec.report_path && openReport(rec.report_path)}>Ver</button>
                   </td>
                 </tr>
               );
@@ -183,15 +183,15 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
     <div className="history-container">
       <div className="history-header">
         <div className="header-left">
-          <button className="back-btn" onClick={onBack}>← Volver</button>
-          <h2>📜 Historial</h2>
-          {selectedIds.length > 0 && <button className="delete-btn" onClick={deleteSelected}>🗑️ Eliminar</button>}
+          <button className="btn btn-ghost btn-sm" onClick={onBack}>← Volver</button>
+          <h2>Historial de ejecuciones</h2>
+          {selectedIds.length > 0 && <button className="btn btn-danger btn-sm" onClick={deleteSelected}>Eliminar</button>}
         </div>
         <div className="header-actions">
-          <button className="toggle-btn" onClick={() => setShowChart(!showChart)}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowChart(!showChart)}>
             {showChart ? "Ver Tabla" : "Ver Tendencias"}
           </button>
-          <button className="export-btn" onClick={exportToExcel}>Excel</button>
+          <button className="btn btn-primary btn-sm" onClick={exportToExcel}>Excel</button>
         </div>
       </div>
 
