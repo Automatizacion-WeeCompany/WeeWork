@@ -4,9 +4,16 @@ on:
   release:
     types: [created]
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
+
+    env:
+      TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+      TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
 
     steps:
       - name: Checkout código
@@ -23,21 +30,21 @@ jobs:
       - name: Build Tauri App (Windows)
         run: npm run tauri build
 
-      # 🔐 Firma Tauri (para updater)
-      - name: Firmar con Tauri
+      # 🧠 Obtener nombre real del .exe
+      - name: Obtener nombre del instalador
+        id: get_exe
+        shell: bash
         run: |
-          npx tauri signer sign ^
-            --private-key "${{ secrets.TAURI_PRIVATE_KEY }}" ^
-            --password "${{ secrets.TAURI_KEY_PASSWORD }}" ^
-            --artifact-path src-tauri/target/release/bundle/**/*.exe ^
-            --output signature.txt
+          FILE=$(ls src-tauri/target/release/bundle/**/*.exe | head -n 1)
+          echo "exe_path=$FILE" >> $GITHUB_OUTPUT
+          echo "exe_name=$(basename $FILE)" >> $GITHUB_OUTPUT
 
-      # 🧠 Generar update.json SOLO para Windows
+      # 🧠 Generar update.json dinámico
       - name: Generar update.json
         shell: bash
         run: |
           VERSION=${GITHUB_REF_NAME}
-          SIG=$(cat signature.txt)
+          EXE_NAME=${{ steps.get_exe.outputs.exe_name }}
 
           echo "{
             \"version\": \"$VERSION\",
@@ -45,8 +52,8 @@ jobs:
             \"pub_date\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\",
             \"platforms\": {
               \"windows-x86_64\": {
-                \"signature\": \"$SIG\",
-                \"url\": \"https://github.com/${{ github.repository }}/releases/download/$VERSION/QA-Automation-Suite-$VERSION-setup.exe\"
+                \"signature\": \"\",
+                \"url\": \"https://github.com/${{ github.repository }}/releases/download/$VERSION/$EXE_NAME\"
               }
             }
           }" > update.json
