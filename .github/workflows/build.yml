@@ -20,21 +20,10 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
-      - name: Build Tauri App
+      - name: Build Tauri App (Windows)
         run: npm run tauri build
 
-      # Decodificar certificado
-      - name: Preparar certificado
-        run: |
-          echo "${{ secrets.WINDOWS_CERTIFICATE }}" > cert.txt
-          certutil -decode cert.txt cert.pfx
-
-      # Firmar .exe (Windows)
-      - name: Firmar ejecutable
-        run: |
-          signtool sign /f cert.pfx /p "${{ secrets.WINDOWS_CERT_PASSWORD }}" /tr http://timestamp.digicert.com /td sha256 /fd sha256 src-tauri\target\release\bundle\**\*.exe
-
-      # Firma Tauri (para updater)
+      # 🔐 Firma Tauri (para updater)
       - name: Firmar con Tauri
         run: |
           npx tauri signer sign ^
@@ -43,12 +32,13 @@ jobs:
             --artifact-path src-tauri/target/release/bundle/**/*.exe ^
             --output signature.txt
 
-      # Generar update.json
+      # 🧠 Generar update.json SOLO para Windows
       - name: Generar update.json
         shell: bash
         run: |
           VERSION=${GITHUB_REF_NAME}
           SIG=$(cat signature.txt)
+
           echo "{
             \"version\": \"$VERSION\",
             \"notes\": \"Auto release\",
@@ -61,13 +51,12 @@ jobs:
             }
           }" > update.json
 
-      # Subir binarios
-      - name: Subir .exe al release
+      # 📦 Subir .exe + update.json
+      - name: Subir Windows al release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             src-tauri/target/release/bundle/**/*.exe
-            src-tauri/target/release/bundle/**/*.msi
             update.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -87,10 +76,11 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
-      - name: Build Tauri App
+      - name: Build Tauri App (macOS)
         run: npm run tauri build
 
-      - name: Subir .dmg al release
+      # 📦 Subir SOLO el .dmg
+      - name: Subir DMG al release
         uses: softprops/action-gh-release@v1
         with:
           files: |
