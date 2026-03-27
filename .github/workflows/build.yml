@@ -54,20 +54,22 @@ jobs:
         run: |
           FILE="${{ steps.get_exe.outputs.exe_path }}"
 
-          npx tauri signer sign "$FILE" \
+          OUTPUT=$(npx tauri signer sign "$FILE" \
             --private-key "$TAURI_PRIVATE_KEY" \
-            --password "$TAURI_KEY_PASSWORD" \
-            > signature.txt
+            --password "$TAURI_KEY_PASSWORD")
+          
+          echo "$OUTPUT"
+          SIG=$(echo "$OUTPUT" | grep -A1 "Public signature:" | tail -n1)
 
-          echo "Contenido de la firma:"
-          cat signature.txt
+          echo "Firma extraída:"
+          echo "$SIG"
 
-          if [ ! -s signature.txt ]; then
-            echo "❌ Firma vacía"
+          if [ -z "$SIG" ]; then
+            echo "❌ No se pudo extraer la firma"
             exit 1
           fi
 
-          echo "signature=$(cat signature.txt)" >> $GITHUB_OUTPUT
+          echo "signature=$SIG" >> $GITHUB_OUTPUT
 
       # 🧠 Generar update.json dinámico
       - name: Generar update.json
