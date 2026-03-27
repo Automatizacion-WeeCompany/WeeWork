@@ -7,6 +7,7 @@ import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 import History from "./screens/History";
 import Login from "./screens/Login";
+import logoW from "../src-tauri/icons/W.png";
 
 // Definición de tipos
 type Screen = "dashboard" | "run" | "results" | "history";
@@ -160,18 +161,21 @@ function App() {
         onLoginSuccess={(role: string) => {
           setIsAuthenticated(true);
           setUserRole(role as "admin" | "viewer");
-        }} 
+        }}
       />
     );
   }
 
   return (
     <div className="app-container">
+      <div className="corner-logo" aria-hidden="true">
+        <img src={logoW} alt="WeeBot" />
+      </div>
       {/* Alerta de Error Global */}
       {error && (
-        <div style={{ background: "#f8d7da", color: "#721c24", padding: "15px", borderRadius: "5px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="alert alert-error" style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span><strong>⚠️ Error:</strong> {error}</span>
-          <button onClick={() => setError(null)} style={{ padding: "5px 10px", cursor: "pointer" }}>Limpiar</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setError(null)}>Limpiar</button>
         </div>
       )}
 

@@ -11,8 +11,8 @@
   line-height: 24px;
   font-weight: 400;
 
-  color: #0f0f0f;
-  background-color: #f6f6f6;
+  color: var(--text-color);
+  background-color: var(--app-bg);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,6 +20,31 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+
+  --app-bg: #f5f7fb;
+  --text-color: #0f172a;
+  --muted-text: rgba(15, 23, 42, 0.6);
+  --panel-bg: #ffffff;
+  --panel-bg-strong: #f8fafc;
+  --panel-border: #e5e7eb;
+  --input-bg: #ffffff;
+  --input-border: #e2e8f0;
+  --btn-bg: linear-gradient(135deg, #0b6aa5 0%, #1e88e5 100%);
+  --btn-bg-hover: linear-gradient(135deg, #095b8f 0%, #1565c0 100%);
+  --btn-secondary: #eef2f7;
+  --btn-danger: #dc2626;
+  --btn-success: #16a34a;
+  --btn-outline: #0b6aa5;
+  --btn-ghost: transparent;
+  --btn-dark: #111827;
+  --btn-text: #ffffff;
+  --link-color: #2563eb;
+  --login-overlay: rgba(255, 255, 255, 0.7);
+}
+
+body {
+  color: var(--text-color);
+  background-color: var(--app-bg);
 }
 
 .container {
@@ -49,12 +74,12 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--link-color);
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #535bf2;
+  color: var(--btn-outline);
 }
 
 h1 {
@@ -62,17 +87,25 @@ h1 {
 }
 
 input,
-button {
+select,
+textarea {
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 1px solid var(--input-border);
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
+  color: var(--text-color);
+  background-color: var(--input-bg);
   transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--btn-outline);
+  box-shadow: 0 0 0 3px rgba(11, 106, 165, 0.2);
 }
 
 button {
@@ -80,11 +113,10 @@ button {
 }
 
 button:hover {
-  border-color: #396cd8;
+  border-color: var(--btn-outline);
 }
 button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
+  border-color: var(--btn-outline);
 }
 
 input,
@@ -96,26 +128,187 @@ button {
   margin-right: 5px;
 }
 
+.app-container {
+  padding: 20px;
+  color: var(--text-color);
+  min-height: 100vh;
+  background-color: var(--app-bg);
+  position: relative;
+}
+
+.screen {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 95vh;
+  color: var(--text-color);
+}
+
+.glass-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.glass-panel-strong {
+  background: var(--panel-bg-strong);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.3);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 6px 14px rgba(2, 6, 23, 0.12);
+}
+
+.btn:hover {
+  background: var(--btn-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(2, 6, 23, 0.18);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary { background: var(--btn-bg); }
+.btn-secondary { background: var(--btn-secondary); color: var(--text-color); }
+.btn-success { background: var(--btn-success); }
+.btn-danger { background: var(--btn-danger); }
+.btn-outline {
+  background: transparent;
+  color: var(--btn-outline);
+  border-color: var(--btn-outline);
+}
+.btn-ghost {
+  background: var(--btn-ghost);
+  color: var(--text-color);
+  border-color: var(--panel-border);
+}
+.btn-dark {
+  background: var(--btn-dark);
+  color: var(--btn-text);
+  border-color: transparent;
+}
+.btn-link {
+  background: transparent;
+  border: none;
+  color: var(--link-color);
+  padding: 0;
+  text-decoration: underline;
+}
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+.btn-xs {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+.btn-block { width: 100%; }
+.btn-icon { padding: 10px; width: 40px; height: 40px; }
+
+.corner-logo {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.corner-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  color: var(--muted-text);
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--panel-border);
+  border-top-color: var(--btn-outline);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.alert {
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+}
+.alert-error {
+  border-color: rgba(244, 67, 54, 0.4);
+  background: rgba(244, 67, 54, 0.12);
+  color: var(--text-color);
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
+    background-color: var(--app-bg);
+    --app-bg: #0b0f1a;
+    --text-color: #e5e7eb;
+    --muted-text: rgba(229, 231, 235, 0.6);
+    --panel-bg: #151a24;
+    --panel-bg-strong: #111622;
+    --panel-border: #273044;
+    --input-bg: #0f131c;
+    --input-border: #263041;
+    --btn-secondary: #1f2937;
+    --btn-outline: #60a5fa;
+    --btn-ghost: transparent;
+    --btn-dark: #000000;
+    --link-color: #7dd3fc;
+    --login-overlay: rgba(15, 15, 15, 0.7);
   }
 
   input,
-  button {
+  select,
+  textarea {
     color: #ffffff;
-    background-color: #0f0f0f98;
   }
+
   button:active {
     background-color: #0f0f0f69;
   }
-}
-
-.app-container {
-  padding: 20px;
 }
