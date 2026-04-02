@@ -201,8 +201,14 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
           <option value="">Todos los Proyectos</option>
           {uniqueProjects.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
-        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="filter-input" />
-        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="filter-input" />
+        <div className="date-input-wrapper">
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="filter-input date-input" />
+          <span className="date-input-icon" aria-hidden="true" />
+        </div>
+        <div className="date-input-wrapper">
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="filter-input date-input" />
+          <span className="date-input-icon" aria-hidden="true" />
+        </div>
       </div>
 
       {showChart 

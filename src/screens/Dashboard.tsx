@@ -140,7 +140,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
     e.stopPropagation(); 
   
     const shouldDelete = await confirmDialog(
-      `⚠️ ¡ADVERTENCIA!\n\nEstás a punto de eliminar TODO el proyecto "${projectName}" de tu equipo.\n\nSi decides continuar, se borrará todo y tendrías que clonarlo de nuevo si lo necesitas.\n\n¿Estás seguro de que deseas eliminarlo?`,
+      `¡ADVERTENCIA!\n\nEstás a punto de eliminar TODO el proyecto "${projectName}" de tu equipo.\n\nSi decides continuar, se borrará todo y tendrías que clonarlo de nuevo si lo necesitas.\n\n¿Estás seguro de que deseas eliminarlo?`,
       { title: "WeeBot", kind: "warning" }
     );
   
