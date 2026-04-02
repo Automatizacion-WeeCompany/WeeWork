@@ -358,8 +358,10 @@ async fn list_playwright_tests(project_path: String) -> Result<Vec<Suite>, Strin
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    use std::collections::{HashMap, HashSet};
-    let mut suites_map: HashMap<String, HashSet<String>> = HashMap::new();
+    use std::collections::HashMap;
+    let mut suites: Vec<Suite> = Vec::new();
+    let mut suite_index: HashMap<String, usize> = HashMap::new();
+    let mut tests_seen: Vec<HashSet<String>> = Vec::new();
 
     for line in stdout.lines() {
         let line = line.trim();
@@ -384,24 +386,33 @@ async fn list_playwright_tests(project_path: String) -> Result<Vec<Suite>, Strin
                         .to_string();
                 }
 
-                suites_map.entry(suite_name).or_default().insert(test_name);
+                if test_name.is_empty() {
+                    continue;
+                }
+
+                let suite_pos = if let Some(pos) = suite_index.get(&suite_name) {
+                    *pos
+                } else {
+                    let pos = suites.len();
+                    suites.push(Suite {
+                        suite: suite_name.clone(),
+                        tests: Vec::new(),
+                    });
+                    suite_index.insert(suite_name.clone(), pos);
+                    tests_seen.push(HashSet::new());
+                    pos
+                };
+
+                if !tests_seen[suite_pos].contains(&test_name) {
+                    suites[suite_pos].tests.push(TestInfo {
+                        id: test_name.clone(),
+                        name: test_name.clone(),
+                    });
+                    tests_seen[suite_pos].insert(test_name);
+                }
             }
         }
     }
-
-    let suites: Vec<Suite> = suites_map
-        .into_iter()
-        .map(|(suite, tests)| Suite {
-            suite,
-            tests: tests
-                .into_iter()
-                .map(|name| TestInfo {
-                    id: name.clone(),
-                    name,
-                })
-                .collect(),
-        })
-        .collect();
 
     if suites.is_empty() {
         return Err(

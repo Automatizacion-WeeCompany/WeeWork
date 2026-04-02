@@ -159,10 +159,18 @@ export default function RunTests({ project, userRole, onExecute, logs, isRunning
         .replace(/^\[|\]$/g, "")
         .split(" - ")[0]
         .trim();
-    });
-    const greepPattern = Array.from(new Set(cleanIds)).join("|")
+    }).filter(Boolean);
+
+    const uniqueIds = Array.from(new Set(cleanIds));
+    if (uniqueIds.length > MAX_SELECTED_TESTS) {
+      alert(`Solo puedes ejecutar hasta ${MAX_SELECTED_TESTS} pruebas por ejecución.`);
+      return;
+    }
+
+    const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const greepPattern = uniqueIds.map((id) => `\\b${escapeRegExp(id)}\\b`).join("|");
     console.log(`Greep optimizado: ${greepPattern}`);
-    onExecute({grep:greepPattern,browser})
+    onExecute({ grep: greepPattern, browser });
   };
 
   // NUEVA LÓGICA DE TOGGLE CON MODAL
