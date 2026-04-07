@@ -117,7 +117,7 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Historial");
-    XLSX.writeFile(wb, "Reporte_QA.xlsx");
+    XLSX.writeFile(wb, "Metricas_QA_WeeBot.xlsx");
   };
 
   const renderTable = () => {
@@ -191,7 +191,7 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
           <button className="btn btn-secondary btn-sm" onClick={() => setShowChart(!showChart)}>
             {showChart ? "Ver Tabla" : "Ver Tendencias"}
           </button>
-          <button className="btn btn-primary btn-sm" onClick={exportToExcel}>Excel</button>
+          <button className="btn btn-primary btn-sm" onClick={exportToExcel}>Descargar Excel</button>
         </div>
       </div>
 
