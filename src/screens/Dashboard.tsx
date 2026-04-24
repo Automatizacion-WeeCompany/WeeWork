@@ -196,7 +196,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
         {showSettings && (
           <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.85)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1100 }}>
             <div style={{ backgroundColor: "var(--panel-bg)", padding: "30px", borderRadius: "15px", maxWidth: "600px", width: "90%", border: "1px solid var(--panel-border)" }}>
-              <h2 style={{ color: "#006ab3", marginTop: 0 }}>Configuración del Sistema</h2>
+              <h2 style={{ color: "#006ab3", marginTop: 0 }}>Acerca del Sistema</h2>
               
               {/* CA01 — Info Versión */}
               <section style={{ marginBottom: "20px", backgroundColor: "var(--panel-bg-strong)", padding: "15px", borderRadius: "8px", border: "1px solid var(--panel-border)" }}>
@@ -243,11 +243,14 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
         {showGuide && (
           <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.8)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px" }}>
             <div style={{ backgroundColor: "var(--panel-bg)", padding: "30px", borderRadius: "15px", maxWidth: "600px", border: "1px solid var(--panel-border)" }}>
-              <h3 style={{ color: "#006ab3", marginTop: 0 }}>Guía de Acceso a Git</h3>
-              <p>Si el clonado falla, intenta usar un Personal Access Token:</p>
+              <h3 style={{ color: "#006ab3", marginTop: 0 }}>¿Como clonamos un proyecto?</h3>
+              <p>Si el clonado falla, acercate al equiopo QA, o sigue estos pasos:</p>
               <code style={{ fontSize: "12px", wordBreak: "break-all", color: "#61dafb", backgroundColor: "#000", padding: "10px", display: "block", borderRadius: "5px", border: "1px solid var(--panel-border)" }}>
-                https://USUARIO:TOKEN@github.com/WeeCompany/repo.git
+                1.- Solicita al equipo QA un acceso para GitHub (si el equipo de TI no te proporciono uno con el equipo)
               </code>
+              <code style={{fontSize:"12px", wordBreak: "break-all", color: "#61dafb", backgroundColor:"#000", paddingInline:"10px",display:"block", borderRadius:"5px",border:"1px solid var()--panel-border"}}>
+                2.- Instala la herramienta GitHub en tu equipo (el equipo de TI puede orientarte o ayudarte)
+                </code>
               <button className="btn btn-primary btn-block" onClick={() => setShowGuide(false)} style={{ marginTop: "20px" }}>Entendido</button>
             </div>
           </div>
@@ -257,7 +260,7 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
           <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.8)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px" }}>
             <div style={{backgroundColor: "var(--panel-bg)", padding: "30px", borderRadius: "15px", maxWidth: "600px", border: "1px solid var(--panel-border)"}}>
               <h3 style={{ color: "#006ab3", marginTop: 0 }}>Documentación de los proyectos</h3>
-              <p style={{ color: "var(--muted-text)", marginBottom: "25px" }}>La documentación proporcionada aquí es responsabilidad del equipo QA y el equipo de Documentación</p>
+              <p style={{ color: "var(--muted-text)", marginBottom: "25px" }}>La documentación proporcionada aquí es responsabilidad del equipo QA y el equipo de Implementación</p>
               <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                 <button
                   onClick={() => handleOpenDocs("https://docs.google.com/spreadsheets/d/1OfhO6OAOXXjvbnaXQeWJ7t0jaVnnKlmJ/edit?usp=sharing&ouid=100188614620631772642&rtpof=true&sd=true")}
@@ -300,8 +303,8 @@ export default function Dashboard({ onSelectProject, onGoToHistory, userRole }: 
           <button className="btn btn-primary" onClick={handleClone} disabled={loading || userRole !== "admin"}>
             {loading ? "Procesando..." : "Agregar / Actualizar proyecto"}
           </button>
-          <button className="btn btn-outline btn-icon" onClick={() => setShowGuide(true)}>❓</button>
-          <button className="btn btn-outline" onClick={() => setShowDocumentation(true)}>Documentacion</button>
+          <button className="btn btn-outline" onClick={() => setShowGuide(true)}>!Ayuda¡</button>
+          <button className="btn btn-outline" onClick={() => setShowDocumentation(true)}>Documentación</button>
         </div>
         {loading && (
           <div className="loading-row" role="status" aria-live="polite">

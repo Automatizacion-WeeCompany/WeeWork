@@ -4,9 +4,16 @@ on:
   release:
     types: [created]
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
+
+    env:
+      TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+      TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
 
     steps:
       - name: Checkout código
@@ -20,14 +27,84 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
-      - name: Build Tauri App
+      - name: Build Tauri App (Windows)
         run: npm run tauri build
-        
-      - name: Guardar binarios Windows
-        uses: actions/upload-artifact@v4
+
+      # 🧠 Obtener .exe correctamente (FIX REAL)
+      - name: Obtener instalador
+        id: get_exe
+        shell: bash
+        run: |
+          FILE=$(find src-tauri/target/release/bundle -name "*.exe" | head -n 1)
+
+          echo "Archivo encontrado: $FILE"
+
+          if [ -z "$FILE" ]; then
+            echo "❌ No se encontró el .exe de la prueba"
+            exit 1
+          fi
+
+          echo "exe_path=$FILE" >> $GITHUB_OUTPUT
+          echo "exe_name=$(basename $FILE)" >> $GITHUB_OUTPUT
+
+      # 🔐 Firmar correctamente (con validación)
+      - name: Firmar instalador
+        id: sign
+        shell: bash
+        run: |
+          FILE="${{ steps.get_exe.outputs.exe_path }}"
+
+          OUTPUT=$(npx tauri signer sign "$FILE" \
+            --private-key "$TAURI_PRIVATE_KEY" \
+            --password "$TAURI_KEY_PASSWORD")
+          
+          echo "$OUTPUT"
+          SIG=$(echo "$OUTPUT" | grep -A1 "Public signature:" | tail -n1)
+
+          echo "Firma extraída:"
+          echo "$SIG"
+
+          if [ -z "$SIG" ]; then
+            echo "❌ No se pudo extraer la firma"
+            exit 1
+          fi
+
+          echo "signature=$SIG" >> $GITHUB_OUTPUT
+
+      # 🧠 Generar update.json dinámico
+      - name: Generar update.json
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          EXE_NAME=${{ steps.get_exe.outputs.exe_name }}
+          SIG=${{ steps.sign.outputs.signature }}
+
+          echo "Generando update.json para versión $VERSION"
+
+          echo "{
+            \"version\": \"$VERSION\",
+            \"notes\": \"Auto update\",
+            \"pub_date\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\",
+            \"platforms\": {
+              \"windows-x86_64\": {
+                \"signature\": \"$SIG\",
+                \"url\": \"https://github.com/${{ github.repository }}/releases/download/$VERSION/$EXE_NAME\"
+              }
+            }
+          }" > update.json
+
+          echo "Contenido de update.json:"
+          cat update.json
+
+      # 📦 Subir artefactos al release
+      - name: Subir Windows al release
+        uses: softprops/action-gh-release@v1
         with:
-          name: windows-build
-          path: src-tauri/target/release/bundle/**/*
+          files: |
+            src-tauri/target/release/bundle/**/*.exe
+            update.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-macos:
     runs-on: macos-latest
@@ -44,11 +121,13 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
-      - name: Build Tauri App
+      - name: Build Tauri App (macOS)
         run: npm run tauri build
 
-      - name: Guardar binarios macOS
-        uses: actions/upload-artifact@v4
+      - name: Subir DMG al release
+        uses: softprops/action-gh-release@v1
         with:
-          name: macos-build
-          path: src-tauri/target/release/bundle/**/*
+          files: |
+            src-tauri/target/release/bundle/**/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
